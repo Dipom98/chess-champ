@@ -1032,7 +1032,7 @@ export function SettingsScreen() {
                 </div>
 
                 <motion.a
-                  href="mailto:Support@Dipomdutta.com?subject=Chess%20Master%20Pro%20Support%20Request"
+                  href="mailto:Support@Dipomdutta.com?subject=Chess%20Champ%20Support%20Request"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className="w-full py-4 bg-gradient-to-r from-amber-400 to-orange-500 rounded-xl text-white font-bold text-center block shadow-lg shadow-amber-500/30"
@@ -1087,12 +1087,12 @@ export function SettingsScreen() {
               <div className="flex-1 overflow-y-auto space-y-4 text-white/70 text-sm pr-2">
                 <section>
                   <h3 className="text-white font-bold mb-2">1. Acceptance of Terms</h3>
-                  <p>By downloading, installing, or using Chess Master Pro ("the App"), you agree to be bound by these Terms and Conditions. If you do not agree, please do not use the App.</p>
+                  <p>By downloading, installing, or using Chess Champ ("the App"), you agree to be bound by these Terms and Conditions. If you do not agree, please do not use the App.</p>
                 </section>
 
                 <section>
                   <h3 className="text-white font-bold mb-2">2. Description of Service</h3>
-                  <p>Chess Master Pro is a mobile chess application that provides:</p>
+                  <p>Chess Champ is a mobile chess application that provides:</p>
                   <ul className="list-disc list-inside mt-2 space-y-1">
                     <li>Player vs Computer (PvE) chess matches</li>
                     <li>Player vs Player (PvP) chess matches</li>
