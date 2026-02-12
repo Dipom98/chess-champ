@@ -1,0 +1,362 @@
+@import "tailwindcss";
+
+/* Custom styles for mobile app feel */
+html {
+  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: linear-gradient(135deg, #0f0a1e 0%, #1a1333 50%, #0d1b2a 100%);
+  overscroll-behavior: none;
+  min-height: 100vh;
+  transition: background 0.3s ease;
+}
+
+/* Light Mode - Premium Light Theme */
+body.light-mode {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f1f5f9 100%);
+}
+
+body.light-mode .glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+body.light-mode .glass-dark {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+/* Text colors for light mode */
+body.light-mode .text-white {
+  color: #1e293b !important;
+}
+
+body.light-mode .text-white\/50 {
+  color: rgba(30, 41, 59, 0.55) !important;
+}
+
+body.light-mode .text-white\/40 {
+  color: rgba(30, 41, 59, 0.45) !important;
+}
+
+body.light-mode .text-white\/30 {
+  color: rgba(30, 41, 59, 0.35) !important;
+}
+
+body.light-mode .text-white\/70 {
+  color: rgba(30, 41, 59, 0.7) !important;
+}
+
+body.light-mode .text-white\/20 {
+  color: rgba(30, 41, 59, 0.25) !important;
+}
+
+/* Background colors for light mode */
+body.light-mode .bg-white\/5 {
+  background: rgba(0, 0, 0, 0.03) !important;
+}
+
+body.light-mode .bg-white\/10 {
+  background: rgba(0, 0, 0, 0.06) !important;
+}
+
+body.light-mode .bg-white\/20 {
+  background: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Border colors for light mode */
+body.light-mode .border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+body.light-mode .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+body.light-mode .border-white\/20 {
+  border-color: rgba(0, 0, 0, 0.12) !important;
+}
+
+/* Fix gradient backgrounds in light mode */
+body.light-mode .bg-indigo-950 {
+  background: #f8fafc !important;
+}
+
+body.light-mode .from-\[\#0f0a1e\],
+body.light-mode .via-\[\#1a1333\],
+body.light-mode .to-\[\#0d1b2a\] {
+  --tw-gradient-from: #f8fafc !important;
+  --tw-gradient-via: #e2e8f0 !important;
+  --tw-gradient-to: #f1f5f9 !important;
+}
+
+/* Modal backgrounds in light mode */
+body.light-mode .bg-indigo-900 {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+}
+
+body.light-mode .bg-black\/60,
+body.light-mode .bg-black\/70,
+body.light-mode .bg-black\/80 {
+  background: rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Input fields in light mode */
+body.light-mode input,
+body.light-mode textarea {
+  background: rgba(0, 0, 0, 0.04) !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+  color: #1e293b !important;
+}
+
+body.light-mode input::placeholder,
+body.light-mode textarea::placeholder {
+  color: rgba(30, 41, 59, 0.4) !important;
+}
+
+body.light-mode input:focus,
+body.light-mode textarea:focus {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.15) !important;
+}
+
+/* Scrollbar for light mode */
+body.light-mode ::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+body.light-mode ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+body.light-mode ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* Card shadows in light mode */
+body.light-mode .shadow-lg {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04) !important;
+}
+
+body.light-mode .shadow-xl {
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1), 0 10px 20px -8px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Shimmer effect for light mode */
+body.light-mode .shimmer {
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.03), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Prevent text selection on mobile */
+* {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input, textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Safe area padding for notched phones */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* Hide scrollbars but allow scrolling */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth scrolling */
+* {
+  scroll-behavior: smooth;
+}
+
+/* Glass effect */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.glass-dark {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Shimmer animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+/* Custom animations */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(251, 191, 36, 0.6);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-glow {
+  animation: glow 2s ease-in-out infinite;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
+}
+
+/* Neon glow effects */
+.neon-amber {
+  box-shadow: 0 0 5px #fbbf24, 0 0 10px #fbbf24, 0 0 20px rgba(251, 191, 36, 0.5);
+}
+
+.neon-purple {
+  box-shadow: 0 0 5px #a855f7, 0 0 10px #a855f7, 0 0 20px rgba(168, 85, 247, 0.5);
+}
+
+.neon-green {
+  box-shadow: 0 0 5px #22c55e, 0 0 10px #22c55e, 0 0 20px rgba(34, 197, 94, 0.5);
+}
+
+/* Chess piece text shadow for better visibility */
+.piece-white {
+  text-shadow: 
+    1px 1px 2px rgba(0, 0, 0, 0.8),
+    -1px -1px 2px rgba(0, 0, 0, 0.8),
+    1px -1px 2px rgba(0, 0, 0, 0.8),
+    -1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.piece-black {
+  text-shadow: 1px 1px 2px rgba(255, 255, 255, 0.3);
+}
+
+/* Button hover effects */
+.btn-glow {
+  transition: all 0.3s ease;
+}
+
+.btn-glow:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px rgba(251, 191, 36, 0.3);
+}
+
+.btn-glow:active {
+  transform: translateY(0);
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.card-hover:active {
+  transform: scale(0.98);
+}
+
+/* Scrollbar styling for desktop */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
