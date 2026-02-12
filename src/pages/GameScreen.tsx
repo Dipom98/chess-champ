@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   RotateCcw, Flag, Home, Pause, ChevronLeft, ChevronRight,
-  Clock, Trophy, Share2, Check
+  Clock, Share2, Check
 } from 'lucide-react';
 import { useGameStore, BOARD_THEMES } from '@/store/gameStore';
 import { getLegalMoves, posEquals } from '@/chess/logic';
@@ -288,10 +288,15 @@ export function GameScreen() {
             if (isInCheck) return 'bg-red-500';
             if (isSelected) return 'bg-amber-400';
             if (isLastMove && !isSelected) {
-              return isLight ? 'bg-amber-200' : 'bg-amber-600/60';
+              return isLight ? 'bg-amber-200/70' : 'bg-amber-600/40';
             }
-            return isLight ? currentTheme.light : currentTheme.dark;
+            // Use premium theme classes or regular tailwind classes
+            const themeClass = isLight ? currentTheme.light : currentTheme.dark;
+            return themeClass;
           };
+          
+          // Check if using premium theme
+          const isPremiumTheme = currentTheme.isPremium;
 
           return (
             <motion.button
@@ -301,8 +306,12 @@ export function GameScreen() {
               className={cn(
                 'relative w-[11vw] h-[11vw] max-w-12 max-h-12 flex items-center justify-center',
                 getSquareColor(),
-                isInCheck && 'animate-pulse'
+                isInCheck && 'animate-pulse',
+                isPremiumTheme && 'overflow-hidden'
               )}
+              style={isPremiumTheme && currentTheme.glowColor ? {
+                boxShadow: isSelected ? `inset 0 0 15px ${currentTheme.glowColor}` : undefined
+              } : undefined}
             >
               {/* Coordinates */}
               {colIndex === 0 && (
@@ -459,8 +468,18 @@ export function GameScreen() {
         <motion.div 
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className={cn("rounded-2xl shadow-2xl overflow-hidden border-4", currentTheme.border)}
-          style={{ boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.1)' }}
+          className={cn(
+            "rounded-2xl shadow-2xl overflow-hidden border-4", 
+            currentTheme.border,
+            currentTheme.isPremium && "premium-board-border"
+          )}
+          style={{ 
+            boxShadow: currentTheme.isPremium && currentTheme.glowColor
+              ? `0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 30px ${currentTheme.glowColor}, 0 0 0 1px rgba(255,255,255,0.1)` 
+              : '0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.1)',
+            // Set CSS variable for premium border glow
+            '--premium-glow-color': currentTheme.glowColor || '#fbbf24'
+          } as React.CSSProperties}
         >
           {renderBoard()}
         </motion.div>
@@ -623,96 +642,183 @@ export function GameScreen() {
         )}
       </AnimatePresence>
 
-      {/* Game Over Modal */}
+      {/* Game Over Modal - Enhanced with full result details */}
       <AnimatePresence>
         {showGameOver && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4"
           >
             <motion.div
               initial={{ scale: 0.8, y: 50 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.8, y: 50 }}
               transition={{ type: 'spring', bounce: 0.3 }}
-              className="relative bg-gradient-to-b from-indigo-800/90 to-purple-900/90 glass rounded-3xl p-8 w-full max-w-sm text-center space-y-5 border border-white/10"
+              className="relative glass rounded-3xl p-6 w-full max-w-sm text-center space-y-4 border border-white/10 max-h-[85vh] overflow-y-auto"
             >
-              {/* Decorative background */}
+              {/* Decorative background based on result */}
               <div className="absolute inset-0 overflow-hidden rounded-3xl">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-amber-500/20 rounded-full blur-3xl -translate-y-1/2" />
+                <div className={cn(
+                  "absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 rounded-full blur-3xl -translate-y-1/2",
+                  currentGame.isCheckmate && currentGame.currentPlayer === (isVsComputer ? computerColor : 'black')
+                    ? "bg-green-500/30"
+                    : currentGame.isCheckmate 
+                    ? "bg-red-500/30"
+                    : "bg-amber-500/20"
+                )} />
               </div>
               
+              {/* Result Icon */}
               <motion.div
                 initial={{ scale: 0, rotate: -180 }}
                 animate={{ scale: 1, rotate: 0 }}
                 transition={{ delay: 0.2, type: 'spring', bounce: 0.5 }}
-                className="relative z-10"
+                className={cn(
+                  "relative z-10 w-24 h-24 mx-auto rounded-2xl flex items-center justify-center shadow-lg",
+                  currentGame.isCheckmate && currentGame.currentPlayer === (isVsComputer ? computerColor : 'black')
+                    ? "bg-gradient-to-br from-green-400 to-emerald-600 shadow-green-500/30"
+                    : currentGame.isCheckmate 
+                    ? "bg-gradient-to-br from-red-400 to-rose-600 shadow-red-500/30"
+                    : "bg-gradient-to-br from-amber-400 to-orange-600 shadow-amber-500/30"
+                )}
               >
-                <Trophy className="mx-auto text-amber-400 drop-shadow-lg" size={72} />
+                <span className="text-5xl">
+                  {currentGame.isCheckmate && currentGame.currentPlayer === (isVsComputer ? computerColor : 'black')
+                    ? '🏆'
+                    : currentGame.isCheckmate 
+                    ? '😤'
+                    : '🤝'}
+                </span>
               </motion.div>
               
+              {/* Result Title */}
               <motion.h2 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="text-3xl font-bold text-white relative z-10"
+                className={cn(
+                  "text-3xl font-bold relative z-10",
+                  currentGame.isCheckmate && currentGame.currentPlayer === (isVsComputer ? computerColor : 'black')
+                    ? "text-green-400"
+                    : currentGame.isCheckmate 
+                    ? "text-red-400"
+                    : "text-amber-400"
+                )}
               >
                 {currentGame.isCheckmate 
                   ? (currentGame.currentPlayer === (isVsComputer ? computerColor : 'black') 
-                      ? '🎉 You Win!' 
-                      : '😔 You Lose!')
-                  : '🤝 Draw!'}
+                      ? 'Victory!' 
+                      : 'Defeat')
+                  : 'Draw!'}
               </motion.h2>
               
-              <p className="text-white/50 relative z-10">
-                {currentGame.isCheckmate ? 'Checkmate!' : whiteTime === 0 || blackTime === 0 ? 'Time out!' : 'Stalemate - the game is a draw'}
+              <p className="text-white/60 text-sm relative z-10">
+                {currentGame.isCheckmate 
+                  ? 'by Checkmate' 
+                  : whiteTime === 0 || blackTime === 0 
+                  ? 'by Timeout' 
+                  : 'by Stalemate'}
               </p>
 
-              {/* Share Button for wins */}
-              {currentGame.isCheckmate && currentGame.currentPlayer === (isVsComputer ? computerColor : 'black') && (
-                <motion.button
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    setShowShareModal(true);
-                  }}
-                  className="w-full py-3 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/30 relative z-10"
-                >
-                  <Share2 size={18} />
-                  Share Victory
-                </motion.button>
-              )}
+              {/* Game Stats Grid */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="grid grid-cols-3 gap-3 relative z-10"
+              >
+                <div className="bg-white/10 rounded-xl p-3 text-center">
+                  <p className="text-2xl font-bold text-white">{currentGame.moveHistory.length}</p>
+                  <p className="text-[10px] text-white/50 uppercase">Moves</p>
+                </div>
+                <div className="bg-white/10 rounded-xl p-3 text-center">
+                  <p className="text-2xl font-bold text-white">{formatTime(playerTime)}</p>
+                  <p className="text-[10px] text-white/50 uppercase">Your Time</p>
+                </div>
+                <div className="bg-white/10 rounded-xl p-3 text-center">
+                  <p className="text-2xl font-bold text-white capitalize">{gameMode}</p>
+                  <p className="text-[10px] text-white/50 uppercase">Mode</p>
+                </div>
+              </motion.div>
 
-              <div className="flex gap-3 relative z-10 pt-2">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleNewGame}
-                  className="flex-1 py-4 bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 rounded-2xl text-white font-bold shadow-lg shadow-amber-500/30 relative overflow-hidden"
-                >
-                  <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-transparent" />
-                  <span className="relative z-10">Play Again</span>
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate('/home')}
-                  className="flex-1 py-4 glass rounded-2xl text-white font-bold hover:bg-white/10 transition-colors"
-                >
-                  Home
-                </motion.button>
+              {/* Opponent Info */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.45 }}
+                className="bg-white/5 rounded-xl p-3 flex items-center gap-3 relative z-10"
+              >
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-lg">
+                  {isVsComputer ? '🤖' : '👤'}
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-white/50 text-xs">Opponent</p>
+                  <p className="text-white font-medium">{isVsComputer ? 'Computer' : 'Player 2'}</p>
+                </div>
+              </motion.div>
+
+              {/* Buttons */}
+              <div className="space-y-3 relative z-10 pt-2">
+                {/* Share Button for wins */}
+                {currentGame.isCheckmate && currentGame.currentPlayer === (isVsComputer ? computerColor : 'black') && (
+                  <motion.button
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setShowShareModal(true)}
+                    className="w-full py-3.5 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/30"
+                  >
+                    <Share2 size={18} />
+                    Share Your Victory
+                  </motion.button>
+                )}
+
+                {/* Retry Button for losses */}
+                {currentGame.isCheckmate && currentGame.currentPlayer !== (isVsComputer ? computerColor : 'black') && (
+                  <motion.button
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleNewGame}
+                    className="w-full py-3.5 bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 rounded-xl text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30 relative overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-transparent" />
+                    <RotateCcw size={18} className="relative z-10" />
+                    <span className="relative z-10">Try Again</span>
+                  </motion.button>
+                )}
+
+                <div className="flex gap-3">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleNewGame}
+                    className="flex-1 py-3.5 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl text-white font-bold shadow-lg shadow-green-500/25"
+                  >
+                    New Game
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => navigate('/home')}
+                    className="flex-1 py-3.5 glass rounded-xl text-white font-bold hover:bg-white/10 transition-colors border border-white/10"
+                  >
+                    Home
+                  </motion.button>
+                </div>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Share Victory Modal */}
+      {/* Share Victory Modal - Enhanced with multiple share options */}
       <AnimatePresence>
         {showShareModal && (
           <motion.div
@@ -727,31 +833,79 @@ export function GameScreen() {
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.8, y: 50 }}
               onClick={(e) => e.stopPropagation()}
-              className="glass rounded-3xl p-6 w-full max-w-sm space-y-5 border border-amber-500/30 relative overflow-hidden"
+              className="glass rounded-3xl p-5 w-full max-w-sm space-y-4 border border-amber-500/30 relative overflow-hidden max-h-[90vh] overflow-y-auto"
             >
-              {/* Victory Poster */}
-              <div className="bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 rounded-2xl p-6 text-center relative overflow-hidden">
+              <h2 className="text-xl font-bold text-white text-center">Share Your Victory</h2>
+
+              {/* Victory Poster - Visual Card */}
+              <div className="bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600 rounded-2xl p-5 text-center relative overflow-hidden shadow-xl">
                 <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-transparent" />
                 <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
                 
+                {/* Decorative Chess Pieces */}
+                <div className="absolute top-2 left-2 text-white/20 text-2xl">♔</div>
+                <div className="absolute top-2 right-2 text-white/20 text-2xl">♚</div>
+                <div className="absolute bottom-2 left-2 text-white/20 text-lg">♞</div>
+                <div className="absolute bottom-2 right-2 text-white/20 text-lg">♝</div>
+                
+                {/* App Logo */}
+                <div className="flex items-center justify-center gap-1.5 mb-2 relative z-10">
+                  <span className="text-lg">♟️</span>
+                  <span className="text-white font-bold text-sm">Chess Champ</span>
+                </div>
+                
                 <motion.div
-                  animate={{ rotate: [0, 10, -10, 0] }}
+                  animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.05, 1] }}
                   transition={{ duration: 2, repeat: Infinity }}
                   className="relative z-10"
                 >
-                  <span className="text-6xl">🏆</span>
+                  <span className="text-6xl drop-shadow-lg">🏆</span>
                 </motion.div>
-                <h3 className="text-2xl font-bold text-white mt-3 relative z-10">Victory!</h3>
-                <p className="text-white/80 relative z-10">{user.name}</p>
-                <div className="flex items-center justify-center gap-2 mt-2 relative z-10">
-                  <span className="text-2xl">{user.country.flag}</span>
-                  <span className="text-white/70">Level {user.level} • {user.rank}</span>
+                
+                <h3 className="text-2xl font-bold text-white mt-2 relative z-10">VICTORY!</h3>
+                
+                {/* Player Info */}
+                <div className="bg-white/20 rounded-xl p-3 mt-3 relative z-10">
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-2xl">{user.avatar}</span>
+                    <div className="text-left">
+                      <p className="text-white font-bold">{user.name}</p>
+                      <p className="text-white/70 text-xs">{user.country.flag} {user.country.name}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-4 pt-4 border-t border-white/20 relative z-10">
-                  <p className="text-white text-sm">Won by Checkmate in {currentGame.moveHistory.length} moves</p>
+                
+                {/* Stats */}
+                <div className="grid grid-cols-3 gap-2 mt-3 relative z-10">
+                  <div className="bg-white/15 rounded-lg px-2 py-1.5">
+                    <p className="text-white/70 text-[10px]">Moves</p>
+                    <p className="text-white font-bold text-sm">{currentGame.moveHistory.length}</p>
+                  </div>
+                  <div className="bg-white/15 rounded-lg px-2 py-1.5">
+                    <p className="text-white/70 text-[10px]">Level</p>
+                    <p className="text-white font-bold text-sm">{user.level}</p>
+                  </div>
+                  <div className="bg-white/15 rounded-lg px-2 py-1.5">
+                    <p className="text-white/70 text-[10px]">Rank</p>
+                    <p className="text-white font-bold text-sm">{user.rank}</p>
+                  </div>
                 </div>
-                <div className="mt-3 bg-white/20 rounded-lg px-3 py-2 relative z-10">
-                  <p className="text-white/80 text-xs">♟️ Chess Master Pro</p>
+                
+                {/* QR Placeholder */}
+                <div className="mt-3 relative z-10">
+                  <div className="bg-white rounded-lg p-1.5 w-14 h-14 mx-auto">
+                    <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 rounded flex items-center justify-center">
+                      <div className="grid grid-cols-4 gap-px">
+                        {Array.from({ length: 16 }).map((_, i) => (
+                          <div key={i} className={cn(
+                            "w-1.5 h-1.5",
+                            (i + Math.floor(i / 4)) % 2 === 0 ? "bg-white" : "bg-transparent"
+                          )} />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-white/60 text-[10px] mt-1">Download Chess Champ</p>
                 </div>
               </div>
 
@@ -761,18 +915,56 @@ export function GameScreen() {
                   animate={{ scale: 1 }}
                   className="text-center py-4"
                 >
-                  <div className="w-16 h-16 mx-auto bg-green-500 rounded-full flex items-center justify-center mb-3">
-                    <Check size={32} className="text-white" />
+                  <div className="w-14 h-14 mx-auto bg-green-500 rounded-full flex items-center justify-center mb-2">
+                    <Check size={28} className="text-white" />
                   </div>
                   <p className="text-green-400 font-bold">Copied to clipboard!</p>
                 </motion.div>
               ) : (
                 <div className="space-y-3">
+                  {/* Social Media Grid */}
+                  <p className="text-white/50 text-xs uppercase tracking-wider">Share to Social Media</p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { name: 'WhatsApp', icon: '💬', color: 'from-green-500 to-green-600', action: () => {
+                        const text = `🏆 I won a chess game on Chess Champ!\n♟️ ${user.name} (Level ${user.level} ${user.rank})\n📊 Won in ${currentGame.moveHistory.length} moves\n\nDownload & challenge me!`;
+                        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+                      }},
+                      { name: 'Twitter', icon: '🐦', color: 'from-blue-400 to-blue-500', action: () => {
+                        const text = `🏆 Victory on Chess Champ! Level ${user.level} ${user.rank}. Won in ${currentGame.moveHistory.length} moves! #ChessChamp #Chess`;
+                        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+                      }},
+                      { name: 'Facebook', icon: '📘', color: 'from-blue-600 to-blue-700', action: () => {
+                        const text = `🏆 I won a chess game on Chess Champ! Level ${user.level} ${user.rank}.`;
+                        window.open(`https://www.facebook.com/sharer/sharer.php?quote=${encodeURIComponent(text)}`, '_blank');
+                      }},
+                      { name: 'Telegram', icon: '✈️', color: 'from-sky-400 to-sky-500', action: () => {
+                        const text = `🏆 I won a chess game on Chess Champ!\n♟️ Level ${user.level} ${user.rank}\n📊 Won in ${currentGame.moveHistory.length} moves`;
+                        window.open(`https://t.me/share/url?text=${encodeURIComponent(text)}`, '_blank');
+                      }},
+                    ].map((platform) => (
+                      <motion.button
+                        key={platform.name}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={platform.action}
+                        className={cn(
+                          "aspect-square rounded-xl flex flex-col items-center justify-center gap-0.5 bg-gradient-to-br shadow-lg",
+                          platform.color
+                        )}
+                      >
+                        <span className="text-xl">{platform.icon}</span>
+                        <span className="text-white text-[8px]">{platform.name}</span>
+                      </motion.button>
+                    ))}
+                  </div>
+
+                  {/* Copy & More Options */}
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={() => {
-                      const shareText = `🏆 I won a chess game on Chess Master Pro!\n\n♟️ ${user.name} (${user.rank})\n📊 Won in ${currentGame.moveHistory.length} moves\n🎯 Level ${user.level}\n\nDownload Chess Master Pro and challenge me!\n#ChessMasterPro #Chess #Victory`;
+                      const shareText = `🏆 I won a chess game on Chess Champ!\n\n♟️ ${user.name} (${user.rank})\n📊 Won in ${currentGame.moveHistory.length} moves\n🎯 Level ${user.level}\n🏳️ ${user.country.flag} ${user.country.name}\n\nDownload Chess Champ and challenge me!\n#ChessChamp #Chess #Victory`;
                       navigator.clipboard.writeText(shareText).then(() => {
                         setShareSuccess(true);
                         setTimeout(() => {
@@ -781,23 +973,33 @@ export function GameScreen() {
                         }, 2000);
                       });
                     }}
-                    className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl text-white font-bold flex items-center justify-center gap-2"
+                    className="w-full py-3.5 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-green-500/30"
                   >
                     📋 Copy to Clipboard
                   </motion.button>
                   
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => {
-                      const shareText = `🏆 I won a chess game on Chess Master Pro! Level ${user.level} ${user.rank}. Challenge me! #ChessMasterPro`;
-                      const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`;
-                      window.open(tweetUrl, '_blank');
-                    }}
-                    className="w-full py-4 bg-gradient-to-r from-blue-400 to-blue-600 rounded-xl text-white font-bold flex items-center justify-center gap-2"
-                  >
-                    🐦 Share on Twitter
-                  </motion.button>
+                  {/* Native Share (if available) */}
+                  {typeof navigator.share !== 'undefined' && (
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={async () => {
+                        try {
+                          await navigator.share({
+                            title: 'Chess Champ Victory!',
+                            text: `🏆 I won a chess game on Chess Champ!\n♟️ ${user.name} (Level ${user.level} ${user.rank})\n📊 Won in ${currentGame.moveHistory.length} moves`,
+                            url: 'https://chesschamp.app'
+                          });
+                        } catch {
+                          // User cancelled or error
+                        }
+                      }}
+                      className="w-full py-3.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl text-white font-bold flex items-center justify-center gap-2 shadow-lg shadow-purple-500/30"
+                    >
+                      <Share2 size={18} />
+                      More Sharing Options
+                    </motion.button>
+                  )}
                   
                   <motion.button
                     whileTap={{ scale: 0.98 }}

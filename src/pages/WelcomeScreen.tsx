@@ -7,7 +7,7 @@ import { useGameStore } from '@/store/gameStore';
 const slides = [
   {
     icon: Crown,
-    title: 'Welcome to Chess Master Pro',
+    title: 'Welcome to Chess Champ',
     description: 'The ultimate mobile chess experience with stunning graphics and smooth gameplay.',
     color: 'from-amber-400 via-orange-500 to-red-500',
     bgGlow: 'bg-amber-500/20',
@@ -78,214 +78,250 @@ export function WelcomeScreen() {
   if (showSplash) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#0f0a1e] via-[#1a1333] to-[#0d1b2a] flex flex-col items-center justify-center relative overflow-hidden">
-        {/* Animated background particles */}
+        {/* Animated chess board pattern background */}
+        <div className="absolute inset-0 overflow-hidden opacity-10">
+          <div className="absolute inset-0" style={{
+            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(251, 191, 36, 0.1) 35px, rgba(251, 191, 36, 0.1) 70px)',
+          }} />
+        </div>
+        
+        {/* Animated background particles - Chess pieces floating */}
         <div className="absolute inset-0 overflow-hidden">
-          {[...Array(20)].map((_, i) => (
+          {['♔', '♕', '♖', '♗', '♘', '♙', '♚', '♛', '♜', '♝', '♞', '♟'].map((piece, i) => (
             <motion.div
               key={i}
-              className="absolute w-2 h-2 bg-amber-400/30 rounded-full"
+              className="absolute text-amber-400/20 text-3xl"
               initial={{ 
                 x: Math.random() * 400, 
-                y: Math.random() * 800,
+                y: -50,
                 opacity: 0,
-                scale: 0
+                rotate: 0
               }}
               animate={{ 
-                y: [null, Math.random() * -200],
-                opacity: [0, 0.8, 0],
-                scale: [0, 1.5, 0]
+                y: [null, 900],
+                opacity: [0, 0.4, 0],
+                rotate: [0, 360]
               }}
               transition={{ 
-                duration: 3 + Math.random() * 2,
+                duration: 8 + Math.random() * 4,
                 repeat: Infinity,
-                delay: Math.random() * 2,
-                ease: "easeOut"
+                delay: Math.random() * 5,
+                ease: "linear"
               }}
-            />
+            >
+              {piece}
+            </motion.div>
           ))}
         </div>
 
-        {/* Glowing orbs */}
+        {/* Multiple glowing orbs with movement */}
         <motion.div 
           animate={{ 
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.5, 0.3]
+            scale: [1, 1.3, 1],
+            opacity: [0.2, 0.4, 0.2],
+            x: [0, 30, 0],
+            y: [0, -20, 0]
           }}
-          transition={{ duration: 3, repeat: Infinity }}
-          className="absolute top-1/4 left-1/4 w-64 h-64 bg-amber-500/20 rounded-full blur-3xl"
+          transition={{ duration: 4, repeat: Infinity }}
+          className="absolute top-1/4 left-1/4 w-72 h-72 bg-amber-500/30 rounded-full blur-3xl"
         />
         <motion.div 
           animate={{ 
             scale: [1.2, 1, 1.2],
-            opacity: [0.2, 0.4, 0.2]
+            opacity: [0.15, 0.35, 0.15],
+            x: [0, -40, 0],
+            y: [0, 30, 0]
           }}
-          transition={{ duration: 4, repeat: Infinity, delay: 0.5 }}
-          className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-purple-500/20 rounded-full blur-3xl"
+          transition={{ duration: 5, repeat: Infinity, delay: 0.5 }}
+          className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/25 rounded-full blur-3xl"
+        />
+        <motion.div 
+          animate={{ 
+            scale: [1, 1.4, 1],
+            opacity: [0.1, 0.3, 0.1]
+          }}
+          transition={{ duration: 6, repeat: Infinity, delay: 1 }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-500/15 rounded-full blur-3xl"
         />
 
-        {/* Main logo animation */}
+        {/* Main logo animation with enhanced effects */}
         <motion.div
-          initial={{ scale: 0, rotate: -180 }}
-          animate={{ scale: 1, rotate: 0 }}
+          initial={{ scale: 0, rotate: -180, opacity: 0 }}
+          animate={{ scale: 1, rotate: 0, opacity: 1 }}
           transition={{ 
             type: "spring",
-            stiffness: 200,
-            damping: 15,
-            duration: 1
+            stiffness: 150,
+            damping: 12,
+            duration: 1.2
           }}
           className="relative z-10"
         >
-          {/* Outer glow ring */}
+          {/* Triple rotating rings */}
           <motion.div
-            animate={{ 
-              rotate: 360,
-              scale: [1, 1.1, 1]
-            }}
-            transition={{ 
-              rotate: { duration: 8, repeat: Infinity, ease: "linear" },
-              scale: { duration: 2, repeat: Infinity }
-            }}
-            className="absolute -inset-8 rounded-full border-2 border-amber-400/30"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+            className="absolute -inset-6 rounded-full border-2 border-amber-400/40 border-dashed"
           />
           <motion.div
-            animate={{ 
-              rotate: -360,
-              scale: [1.1, 1, 1.1]
-            }}
-            transition={{ 
-              rotate: { duration: 12, repeat: Infinity, ease: "linear" },
-              scale: { duration: 2, repeat: Infinity, delay: 0.5 }
-            }}
-            className="absolute -inset-16 rounded-full border border-purple-400/20"
+            animate={{ rotate: -360 }}
+            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+            className="absolute -inset-12 rounded-full border border-purple-400/30"
+          />
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+            className="absolute -inset-20 rounded-full border border-cyan-400/20 border-dotted"
           />
 
-          {/* Chess pieces floating around */}
-          <motion.span
-            animate={{ 
-              y: [-10, 10, -10],
-              x: [-5, 5, -5],
-              rotate: [0, 10, -10, 0]
-            }}
-            transition={{ duration: 4, repeat: Infinity }}
-            className="absolute -top-12 -left-8 text-4xl"
+          {/* Orbiting chess pieces */}
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+            className="absolute -inset-16"
           >
-            ♜
-          </motion.span>
-          <motion.span
-            animate={{ 
-              y: [10, -10, 10],
-              x: [5, -5, 5],
-              rotate: [0, -10, 10, 0]
-            }}
-            transition={{ duration: 4.5, repeat: Infinity }}
-            className="absolute -top-8 -right-10 text-4xl"
-          >
-            ♞
-          </motion.span>
-          <motion.span
-            animate={{ 
-              y: [-8, 12, -8],
-              x: [8, -3, 8],
-              rotate: [0, 15, -5, 0]
-            }}
-            transition={{ duration: 5, repeat: Infinity }}
-            className="absolute -bottom-10 -left-6 text-4xl"
-          >
-            ♝
-          </motion.span>
-          <motion.span
-            animate={{ 
-              y: [5, -15, 5],
-              x: [-10, 5, -10],
-              rotate: [0, -8, 12, 0]
-            }}
-            transition={{ duration: 3.5, repeat: Infinity }}
-            className="absolute -bottom-8 -right-8 text-4xl"
-          >
-            ♛
-          </motion.span>
+            <motion.span 
+              className="absolute top-0 left-1/2 -translate-x-1/2 text-3xl filter drop-shadow-lg"
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              ♜
+            </motion.span>
+            <motion.span 
+              className="absolute bottom-0 left-1/2 -translate-x-1/2 text-3xl filter drop-shadow-lg"
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+            >
+              ♞
+            </motion.span>
+            <motion.span 
+              className="absolute left-0 top-1/2 -translate-y-1/2 text-3xl filter drop-shadow-lg"
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 2, repeat: Infinity, delay: 1 }}
+            >
+              ♝
+            </motion.span>
+            <motion.span 
+              className="absolute right-0 top-1/2 -translate-y-1/2 text-3xl filter drop-shadow-lg"
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 2, repeat: Infinity, delay: 1.5 }}
+            >
+              ♛
+            </motion.span>
+          </motion.div>
 
-          {/* Main icon */}
+          {/* Main icon with pulsing glow */}
           <motion.div
             animate={{ 
               boxShadow: [
-                "0 0 30px rgba(251, 191, 36, 0.3)",
-                "0 0 60px rgba(251, 191, 36, 0.5)",
-                "0 0 30px rgba(251, 191, 36, 0.3)"
+                "0 0 30px rgba(251, 191, 36, 0.3), 0 0 60px rgba(251, 191, 36, 0.2)",
+                "0 0 50px rgba(251, 191, 36, 0.5), 0 0 100px rgba(251, 191, 36, 0.3)",
+                "0 0 30px rgba(251, 191, 36, 0.3), 0 0 60px rgba(251, 191, 36, 0.2)"
               ]
             }}
             transition={{ duration: 2, repeat: Infinity }}
-            className="w-32 h-32 rounded-3xl bg-gradient-to-br from-amber-400 via-orange-500 to-red-500 flex items-center justify-center shadow-2xl relative"
+            className="w-36 h-36 rounded-3xl bg-gradient-to-br from-amber-400 via-orange-500 to-red-500 flex items-center justify-center shadow-2xl relative overflow-hidden"
           >
+            {/* Shimmer effect */}
+            <motion.div
+              animate={{ x: ['-100%', '100%'] }}
+              transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12"
+            />
             <div className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-white/30 via-transparent to-transparent" />
             <motion.span
-              animate={{ scale: [1, 1.1, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="text-6xl relative z-10"
+              animate={{ 
+                scale: [1, 1.15, 1],
+                rotate: [0, 5, -5, 0]
+              }}
+              transition={{ duration: 3, repeat: Infinity }}
+              className="text-7xl relative z-10 filter drop-shadow-lg"
             >
               ♔
             </motion.span>
           </motion.div>
         </motion.div>
 
-        {/* Title animation */}
+        {/* Title animation with letter-by-letter reveal */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.8 }}
-          className="mt-10 text-center relative z-10"
+          transition={{ delay: 0.6, duration: 0.8 }}
+          className="mt-12 text-center relative z-10"
         >
-          <motion.h1 
-            className="text-4xl font-bold bg-gradient-to-r from-amber-400 via-orange-400 to-amber-400 bg-clip-text text-transparent"
-            animate={{ backgroundPosition: ["0%", "100%", "0%"] }}
-            transition={{ duration: 3, repeat: Infinity }}
-            style={{ backgroundSize: "200% auto" }}
+          <motion.div className="flex justify-center gap-1">
+            {'Chess Champ'.split('').map((letter, i) => (
+              <motion.span
+                key={i}
+                initial={{ opacity: 0, y: 20, rotate: -10 }}
+                animate={{ opacity: 1, y: 0, rotate: 0 }}
+                transition={{ delay: 0.8 + i * 0.05, type: 'spring', stiffness: 200 }}
+                className="text-4xl font-bold bg-gradient-to-r from-amber-400 via-orange-400 to-amber-400 bg-clip-text text-transparent"
+                style={{ backgroundSize: "200% auto" }}
+              >
+                {letter === ' ' ? '\u00A0' : letter}
+              </motion.span>
+            ))}
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 1.5, type: 'spring', stiffness: 200 }}
+            className="mt-3 flex items-center justify-center gap-2"
           >
-            Chess Master
-          </motion.h1>
+            <motion.div 
+              animate={{ scaleX: [0, 1, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="h-px w-8 bg-gradient-to-r from-transparent via-amber-400 to-transparent"
+            />
+            <span className="text-amber-400/80 text-sm font-medium tracking-[0.3em]">MASTER YOUR GAME</span>
+            <motion.div 
+              animate={{ scaleX: [0, 1, 0] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              className="h-px w-8 bg-gradient-to-r from-transparent via-amber-400 to-transparent"
+            />
+          </motion.div>
+        </motion.div>
+
+        {/* Enhanced loading indicator */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.8 }}
+          className="mt-12 flex flex-col items-center gap-4"
+        >
+          {/* Progress bar */}
+          <div className="w-48 h-1.5 bg-white/10 rounded-full overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: '100%' }}
+              transition={{ duration: 2, delay: 1.8, ease: 'easeInOut' }}
+              className="h-full bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400 rounded-full"
+            />
+          </div>
+          
+          {/* Loading text */}
           <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1, duration: 0.5 }}
-            className="text-white/50 mt-2 text-lg tracking-wider"
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+            className="text-white/50 text-sm tracking-wide"
           >
-            PRO
+            Loading your chess experience...
           </motion.p>
         </motion.div>
 
-        {/* Loading dots */}
+        {/* Version text with subtle animation */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1.5 }}
-          className="flex gap-2 mt-12"
+          transition={{ delay: 2.5 }}
+          className="absolute bottom-8 flex flex-col items-center gap-1"
         >
-          {[0, 1, 2].map((i) => (
-            <motion.div
-              key={i}
-              animate={{ 
-                scale: [1, 1.5, 1],
-                opacity: [0.3, 1, 0.3]
-              }}
-              transition={{ 
-                duration: 1,
-                repeat: Infinity,
-                delay: i * 0.2
-              }}
-              className="w-2 h-2 bg-amber-400 rounded-full"
-            />
-          ))}
+          <div className="flex items-center gap-2">
+            <span className="text-white/30 text-xs">♟️</span>
+            <span className="text-white/30 text-sm">Version 1.0.0</span>
+            <span className="text-white/30 text-xs">♟️</span>
+          </div>
         </motion.div>
-
-        {/* Version text */}
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2 }}
-          className="absolute bottom-8 text-white/30 text-sm"
-        >
-          Version 1.0.0
-        </motion.p>
       </div>
     );
   }

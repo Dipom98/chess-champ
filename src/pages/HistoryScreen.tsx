@@ -111,7 +111,7 @@ export function HistoryScreen() {
       `🎮 Mode: ${selectedGame.mode}\n` +
       `📅 Date: ${new Date(selectedGame.date).toLocaleDateString()}\n` +
       (selectedGame.coinsWon > 0 ? `💰 Coins Won: +${selectedGame.coinsWon}\n` : '') +
-      `\n🎮 Play Chess Master Pro!\n#ChessMasterPro #Chess`;
+      `\n🎮 Play Chess Champ!\n#ChessChamp #Chess`;
   };
 
   const copyShareText = () => {
@@ -177,7 +177,7 @@ export function HistoryScreen() {
         await navigator.share({
           title: 'My Chess Game Result',
           text: getShareText(),
-          url: 'https://chessmasterpro.app'
+          url: 'https://chesschamp.app'
         });
       } catch {
         copyShareText();
@@ -544,7 +544,7 @@ export function HistoryScreen() {
                   {/* App Branding */}
                   <div className="flex items-center justify-center gap-2 mb-3">
                     <span className="text-2xl">♟️</span>
-                    <span className="text-white font-bold text-sm">Chess Master Pro</span>
+                    <span className="text-white font-bold text-sm">Chess Champ</span>
                   </div>
                   
                   {/* Result Icon */}
@@ -601,7 +601,7 @@ export function HistoryScreen() {
                     </div>
                   </div>
                   
-                  <p className="text-white/80 text-xs">Scan to play • chessmasterpro.app</p>
+                  <p className="text-white/80 text-xs">Scan to play • chesschamp.app</p>
                 </div>
               </div>
 

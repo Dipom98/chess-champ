@@ -5,7 +5,7 @@ import {
   ChevronLeft, Zap, Trophy, Lock, Check, 
   Lightbulb, Star, Gift, Target, Flame, X, RotateCcw
 } from 'lucide-react';
-import { MobileLayout } from '../components/MobileLayout';
+import { MobileLayout } from '@/components/MobileLayout';
 import { useGameStore } from '../store/gameStore';
 import {
   ChessPuzzle,

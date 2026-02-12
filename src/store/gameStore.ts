@@ -54,6 +54,7 @@ export interface UserProfile {
   gender: Gender;
   country: Country;
   avatar: string;
+  customProfilePicture: string | null; // Base64 encoded image
   level: number;
   rank: RankName;
   totalPveWins: number;
@@ -93,6 +94,12 @@ export interface BoardThemeConfig {
   dark: string;
   border: string;
   isPremium?: boolean;
+  // Premium theme extras
+  lightGradient?: string;
+  darkGradient?: string;
+  borderGradient?: string;
+  glowColor?: string;
+  pattern?: string;
 }
 
 export const BOARD_THEMES: Record<BoardTheme, BoardThemeConfig> = {
@@ -105,12 +112,52 @@ export const BOARD_THEMES: Record<BoardTheme, BoardThemeConfig> = {
   royal: { name: 'Royal', light: 'bg-yellow-100', dark: 'bg-indigo-700', border: 'border-indigo-900' },
   midnight: { name: 'Midnight', light: 'bg-slate-400', dark: 'bg-slate-800', border: 'border-slate-900' },
   marble: { name: 'Marble', light: 'bg-gray-100', dark: 'bg-gray-500', border: 'border-gray-700' },
-  // Premium Themes
-  diamond: { name: '💎 Diamond', light: 'bg-sky-100', dark: 'bg-sky-600', border: 'border-sky-400', isPremium: true },
-  ruby: { name: '❤️ Ruby', light: 'bg-rose-100', dark: 'bg-rose-700', border: 'border-rose-500', isPremium: true },
-  emerald: { name: '💚 Emerald', light: 'bg-emerald-100', dark: 'bg-emerald-700', border: 'border-emerald-500', isPremium: true },
-  gold: { name: '🌟 Gold', light: 'bg-yellow-200', dark: 'bg-yellow-600', border: 'border-yellow-500', isPremium: true },
-  obsidian: { name: '🖤 Obsidian', light: 'bg-zinc-300', dark: 'bg-zinc-900', border: 'border-zinc-700', isPremium: true },
+  // Premium Themes - Truly Premium with special effects
+  diamond: { 
+    name: '💎 Diamond', 
+    light: 'premium-diamond-light', 
+    dark: 'premium-diamond-dark', 
+    border: 'border-cyan-400', 
+    isPremium: true,
+    glowColor: 'rgba(103, 232, 249, 0.5)',
+    pattern: 'diamond'
+  },
+  ruby: { 
+    name: '❤️ Ruby', 
+    light: 'premium-ruby-light', 
+    dark: 'premium-ruby-dark', 
+    border: 'border-rose-500', 
+    isPremium: true,
+    glowColor: 'rgba(244, 63, 94, 0.5)',
+    pattern: 'ruby'
+  },
+  emerald: { 
+    name: '💚 Emerald', 
+    light: 'premium-emerald-light', 
+    dark: 'premium-emerald-dark', 
+    border: 'border-emerald-400', 
+    isPremium: true,
+    glowColor: 'rgba(52, 211, 153, 0.5)',
+    pattern: 'emerald'
+  },
+  gold: { 
+    name: '🌟 Gold', 
+    light: 'premium-gold-light', 
+    dark: 'premium-gold-dark', 
+    border: 'border-yellow-400', 
+    isPremium: true,
+    glowColor: 'rgba(250, 204, 21, 0.5)',
+    pattern: 'gold'
+  },
+  obsidian: { 
+    name: '🖤 Obsidian', 
+    light: 'premium-obsidian-light', 
+    dark: 'premium-obsidian-dark', 
+    border: 'border-purple-500', 
+    isPremium: true,
+    glowColor: 'rgba(168, 85, 247, 0.5)',
+    pattern: 'obsidian'
+  },
 };
 
 export interface ActiveMatch {
@@ -198,6 +245,7 @@ const createDefaultUser = (): UserProfile => {
     gender,
     country: getDefaultCountry(),
     avatar: getDefaultAvatar(gender),
+    customProfilePicture: null,
     level: 1,
     rank: 'Pawn',
     totalPveWins: 0,
@@ -803,7 +851,7 @@ export const useGameStore = create<AppState>()(
       },
     }),
     {
-      name: 'chess-master-storage',
+      name: 'chess-champ-storage',
       partialize: (state) => ({
         user: state.user,
         hasSeenWelcome: state.hasSeenWelcome,

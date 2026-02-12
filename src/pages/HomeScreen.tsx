@@ -107,8 +107,16 @@ export function HomeScreen() {
             onClick={() => navigate('/settings')}
             className="relative"
           >
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-red-500 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/30">
-              {user.avatar}
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-red-500 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/30 overflow-hidden">
+              {user.customProfilePicture ? (
+                <img 
+                  src={user.customProfilePicture} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                user.avatar
+              )}
             </div>
             <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-[#0f0a1e] flex items-center justify-center">
               <Sparkles size={10} className="text-white" />
