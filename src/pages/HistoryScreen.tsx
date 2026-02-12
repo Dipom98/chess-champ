@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Calendar, Trophy, Swords, 
+import {
+  Calendar, Trophy, Swords,
   TrendingUp, TrendingDown, Minus, ChevronRight, Coins, X, Share2, Check, Download,
   MessageCircle, Send
 } from 'lucide-react';
@@ -57,8 +57,8 @@ export function HistoryScreen() {
     draws: gameHistory.filter(g => g.result === 'draw').length,
   };
 
-  const winRate = stats.total > 0 
-    ? Math.round((stats.wins / stats.total) * 100) 
+  const winRate = stats.total > 0
+    ? Math.round((stats.wins / stats.total) * 100)
     : 0;
 
   const rankInfo = RANKS[user.rank];
@@ -149,7 +149,7 @@ export function HistoryScreen() {
 
   const shareToLinkedIn = () => {
     const text = getShareText();
-    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://chessmasterpro.app')}&summary=${encodeURIComponent(text)}`;
+    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent('https://chesschamp.app')}&summary=${encodeURIComponent(text)}`;
     window.open(url, '_blank');
   };
 
@@ -210,7 +210,7 @@ export function HistoryScreen() {
       <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-2xl shadow-lg">
         {game.opponentAvatar}
       </div>
-      
+
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="text-white font-semibold truncate">{game.opponent}</p>
@@ -258,7 +258,7 @@ export function HistoryScreen() {
             <Trophy className="text-amber-400" size={24} />
             <h3 className="text-white font-bold text-lg">Your Statistics</h3>
           </div>
-          
+
           <div className="grid grid-cols-4 gap-3">
             <div className="text-center">
               <p className="text-2xl font-bold text-white">{stats.total}</p>
@@ -314,8 +314,8 @@ export function HistoryScreen() {
               onClick={() => setFilter(f.type)}
               className={cn(
                 'flex-1 py-2 rounded-xl text-sm font-medium transition-all',
-                filter === f.type 
-                  ? f.color + ' border border-current/30' 
+                filter === f.type
+                  ? f.color + ' border border-current/30'
                   : 'bg-white/5 text-white/40'
               )}
             >
@@ -330,7 +330,7 @@ export function HistoryScreen() {
             <span className="text-amber-400 text-sm">
               Showing: {formatMonthName(selectedMonth)}
             </span>
-            <button 
+            <button
               onClick={() => setSelectedMonth(null)}
               className="text-amber-400 text-sm font-medium"
             >
@@ -352,8 +352,8 @@ export function HistoryScreen() {
               </div>
               <h3 className="text-white font-bold text-lg mb-2">No Games Found</h3>
               <p className="text-white/40">
-                {filter === 'all' 
-                  ? "You haven't played any games yet" 
+                {filter === 'all'
+                  ? "You haven't played any games yet"
                   : `No ${filter}s recorded`}
               </p>
             </motion.div>
@@ -366,7 +366,7 @@ export function HistoryScreen() {
 
         {/* View by Month Button */}
         {gameHistory.length > 0 && (
-          <button 
+          <button
             onClick={() => setShowMonthPicker(true)}
             className="w-full py-4 bg-white/5 rounded-2xl text-white/60 font-medium flex items-center justify-center gap-2"
           >
@@ -413,8 +413,8 @@ export function HistoryScreen() {
                   {selectedGame.result === 'win' ? '🏆' : selectedGame.result === 'loss' ? '😤' : '🤝'}
                 </div>
                 <h2 className="text-2xl font-bold text-white capitalize">{selectedGame.result}</h2>
-                <p className="text-white/50">{new Date(selectedGame.date).toLocaleDateString('en-US', { 
-                  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+                <p className="text-white/50">{new Date(selectedGame.date).toLocaleDateString('en-US', {
+                  weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
                 })}</p>
               </div>
 
@@ -521,42 +521,42 @@ export function HistoryScreen() {
               <h2 className="text-xl font-bold text-white text-center">Share Your Victory</h2>
 
               {/* Share Card Preview - Winning Poster */}
-              <div 
+              <div
                 ref={shareCardRef}
                 className={cn(
                   "rounded-2xl p-5 text-center relative overflow-hidden",
-                  selectedGame.result === 'win' 
-                    ? "bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600" 
+                  selectedGame.result === 'win'
+                    ? "bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600"
                     : selectedGame.result === 'loss'
-                    ? "bg-gradient-to-br from-red-500 via-rose-500 to-orange-600"
-                    : "bg-gradient-to-br from-gray-500 via-slate-500 to-zinc-600"
+                      ? "bg-gradient-to-br from-red-500 via-rose-500 to-orange-600"
+                      : "bg-gradient-to-br from-gray-500 via-slate-500 to-zinc-600"
                 )}
               >
                 <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-transparent" />
-                
+
                 {/* Decorative Elements */}
                 <div className="absolute top-2 left-2 text-white/20 text-4xl">♔</div>
                 <div className="absolute top-2 right-2 text-white/20 text-4xl">♚</div>
                 <div className="absolute bottom-2 left-2 text-white/20 text-2xl">♞</div>
                 <div className="absolute bottom-2 right-2 text-white/20 text-2xl">♝</div>
-                
+
                 <div className="relative z-10">
                   {/* App Branding */}
                   <div className="flex items-center justify-center gap-2 mb-3">
                     <span className="text-2xl">♟️</span>
                     <span className="text-white font-bold text-sm">Chess Champ</span>
                   </div>
-                  
+
                   {/* Result Icon */}
                   <span className="text-6xl mb-2 block">
                     {selectedGame.result === 'win' ? '🏆' : selectedGame.result === 'loss' ? '😤' : '🤝'}
                   </span>
-                  
+
                   {/* Result Text */}
                   <h3 className="text-3xl font-bold text-white capitalize mb-1">
                     {selectedGame.result === 'win' ? 'Victory!' : selectedGame.result === 'loss' ? 'Defeat' : 'Draw'}
                   </h3>
-                  
+
                   {/* Player Info */}
                   <div className="bg-white/20 rounded-xl p-3 mt-3 mb-3">
                     <div className="flex items-center justify-center gap-2">
@@ -570,7 +570,7 @@ export function HistoryScreen() {
                       vs <span className="font-semibold">{selectedGame.opponent}</span>
                     </div>
                   </div>
-                  
+
                   {/* Game Stats */}
                   <div className="grid grid-cols-3 gap-2 text-sm mb-3">
                     <div className="bg-white/20 rounded-lg px-2 py-2">
@@ -586,7 +586,7 @@ export function HistoryScreen() {
                       <p className="text-white font-bold capitalize">{selectedGame.mode}</p>
                     </div>
                   </div>
-                  
+
                   {/* QR Code Placeholder */}
                   <div className="bg-white rounded-lg p-2 w-20 h-20 mx-auto mb-2">
                     <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 rounded flex items-center justify-center">
@@ -600,7 +600,7 @@ export function HistoryScreen() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <p className="text-white/80 text-xs">Scan to play • chesschamp.app</p>
                 </div>
               </div>
@@ -651,7 +651,7 @@ export function HistoryScreen() {
                       <Send size={18} />
                       More Sharing Options
                     </motion.button>
-                    
+
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -661,7 +661,7 @@ export function HistoryScreen() {
                       <MessageCircle size={18} />
                       Copy to Clipboard
                     </motion.button>
-                    
+
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
@@ -675,7 +675,7 @@ export function HistoryScreen() {
                       Save Poster
                     </motion.button>
                   </div>
-                  
+
                   <motion.button
                     whileTap={{ scale: 0.98 }}
                     onClick={() => setShowShareModal(false)}
@@ -727,8 +727,8 @@ export function HistoryScreen() {
                   }}
                   className={cn(
                     "w-full p-4 rounded-xl flex items-center justify-between transition-all",
-                    !selectedMonth 
-                      ? "bg-amber-500/20 border border-amber-500/50" 
+                    !selectedMonth
+                      ? "bg-amber-500/20 border border-amber-500/50"
                       : "bg-white/5 hover:bg-white/10"
                   )}
                 >
@@ -759,8 +759,8 @@ export function HistoryScreen() {
                       }}
                       className={cn(
                         "w-full p-4 rounded-xl flex items-center justify-between transition-all",
-                        selectedMonth === monthKey 
-                          ? "bg-amber-500/20 border border-amber-500/50" 
+                        selectedMonth === monthKey
+                          ? "bg-amber-500/20 border border-amber-500/50"
                           : "bg-white/5 hover:bg-white/10"
                       )}
                     >
