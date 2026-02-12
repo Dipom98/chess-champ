@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Chess Master Pro</string>
-    <string name="title_activity_main">Chess Master Pro</string>
+    <string name="app_name">Chess Champ</string>
+    <string name="title_activity_main">Chess Champ</string>
     <string name="package_name">com.chessmasterpro.app</string>
     <string name="custom_url_scheme">com.chessmasterpro.app</string>
 </resources>

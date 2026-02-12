@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   Bell, Volume2, Smartphone, Eye, Crown,
   Palette, Moon, HelpCircle, ChevronRight,
   Check, X, Mail, Globe, User, Trash2, Star, Lock,
@@ -42,7 +42,7 @@ export function SettingsScreen() {
         alert('Image size must be less than 2MB');
         return;
       }
-      
+
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result as string;
@@ -60,12 +60,12 @@ export function SettingsScreen() {
   };
 
   const avatarOptions = DEFAULT_AVATARS[editGender] || DEFAULT_AVATARS.prefer_not_to_say;
-  
+
   // Separate regular and premium themes
   const regularThemes = Object.entries(BOARD_THEMES)
     .filter(([_, config]) => !config.isPremium)
     .map(([id, config]) => ({ id, ...config }));
-    
+
   const premiumThemes = Object.entries(BOARD_THEMES)
     .filter(([_, config]) => config.isPremium)
     .map(([id, config]) => ({ id, ...config }));
@@ -91,7 +91,7 @@ export function SettingsScreen() {
       setEditAvatar(defaultAvatars[0]);
     }
   };
-  
+
   const handleThemeSelect = (themeId: string) => {
     const theme = BOARD_THEMES[themeId as BoardTheme];
     if (theme.isPremium && !settings.isPremium) {
@@ -100,7 +100,7 @@ export function SettingsScreen() {
     }
     updateSettings({ boardTheme: themeId as BoardTheme });
   };
-  
+
   const handleSubscribe = () => {
     // Simulate subscription - in real app this would integrate with payment
     const expiryDate = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -161,15 +161,15 @@ export function SettingsScreen() {
     </div>
   );
 
-  const SettingLink = ({ icon: Icon, label, value, onClick, danger, premium }: { 
-    icon: React.ElementType; 
-    label: string; 
+  const SettingLink = ({ icon: Icon, label, value, onClick, danger, premium }: {
+    icon: React.ElementType;
+    label: string;
     value?: string;
     onClick?: () => void;
     danger?: boolean;
     premium?: boolean;
   }) => (
-    <motion.button 
+    <motion.button
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className={cn(
@@ -206,7 +206,7 @@ export function SettingsScreen() {
           >
             <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-transparent" />
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
-            
+
             <div className="relative z-10 flex items-center gap-4">
               <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center">
                 <Crown size={28} className="text-white" />
@@ -235,7 +235,7 @@ export function SettingsScreen() {
               <div className="flex-1">
                 <h3 className="text-amber-400 font-bold">Premium Member</h3>
                 <p className="text-white/50 text-sm">
-                  {settings.premiumExpiry 
+                  {settings.premiumExpiry
                     ? `Expires: ${new Date(settings.premiumExpiry).toLocaleDateString()}`
                     : 'Active Subscription'
                   }
@@ -258,9 +258,9 @@ export function SettingsScreen() {
           <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-purple-500/10" />
           <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-3xl shadow-lg shadow-amber-500/30 overflow-hidden">
             {user.customProfilePicture ? (
-              <img 
-                src={user.customProfilePicture} 
-                alt="Profile" 
+              <img
+                src={user.customProfilePicture}
+                alt="Profile"
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -327,7 +327,7 @@ export function SettingsScreen() {
                 </div>
                 <p className="text-white font-medium">Board Theme</p>
               </div>
-              
+
               {/* Regular Themes */}
               <div className="grid grid-cols-4 gap-3 mb-4">
                 {regularThemes.map((theme) => (
@@ -337,8 +337,8 @@ export function SettingsScreen() {
                     onClick={() => handleThemeSelect(theme.id)}
                     className={cn(
                       'rounded-xl p-2 border-2 transition-all',
-                      settings.boardTheme === theme.id 
-                        ? 'border-amber-400 bg-amber-500/10 shadow-lg shadow-amber-500/10' 
+                      settings.boardTheme === theme.id
+                        ? 'border-amber-400 bg-amber-500/10 shadow-lg shadow-amber-500/10'
                         : 'border-transparent hover:border-white/20'
                     )}
                   >
@@ -355,56 +355,56 @@ export function SettingsScreen() {
                   </motion.button>
                 ))}
               </div>
-              
+
               {/* Premium Themes Section */}
-                <div className="mt-4 pt-4 border-t border-white/10">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Crown size={14} className="text-amber-400" />
-                    <span className="text-amber-400 text-xs font-medium uppercase tracking-wider">Premium Themes</span>
-                    {!settings.isPremium && <Lock size={12} className="text-amber-400/50" />}
-                  </div>
-                  <p className="text-white/40 text-xs mb-3">Exclusive themes with special effects & animations</p>
-                  <div className="grid grid-cols-5 gap-2">
-                    {premiumThemes.map((theme) => (
-                      <motion.button
-                        key={theme.id}
-                        whileTap={{ scale: 0.95 }}
-                        whileHover={{ scale: settings.isPremium ? 1.05 : 1 }}
-                        onClick={() => handleThemeSelect(theme.id)}
-                        className={cn(
-                          'rounded-xl p-1.5 border-2 transition-all relative',
-                          settings.boardTheme === theme.id && settings.isPremium
-                            ? 'border-amber-400 bg-amber-500/10 shadow-lg shadow-amber-500/20' 
-                            : 'border-transparent',
-                          !settings.isPremium && 'opacity-70'
-                        )}
-                      >
-                        <div className="grid grid-cols-2 gap-0.5 w-full aspect-square rounded-lg overflow-hidden shadow-md relative">
-                          <div className={cn(theme.light, 'relative')} />
-                          <div className={cn(theme.dark, 'relative')} />
-                          <div className={cn(theme.dark, 'relative')} />
-                          <div className={cn(theme.light, 'relative')} />
-                          {!settings.isPremium && (
-                            <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center">
-                              <Lock size={12} className="text-white/80" />
-                            </div>
-                          )}
-                          {settings.isPremium && (
-                            <div className="absolute inset-0 pointer-events-none">
-                              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent animate-shimmer" />
-                            </div>
-                          )}
-                        </div>
-                        <p className={cn(
-                          "text-[9px] text-center font-medium mt-1 truncate",
-                          settings.boardTheme === theme.id && settings.isPremium ? 'text-amber-400' : 'text-white/40'
-                        )}>{theme.name.replace(/^[^\s]+\s/, '')}</p>
-                      </motion.button>
-                    ))}
-                  </div>
+              <div className="mt-4 pt-4 border-t border-white/10">
+                <div className="flex items-center gap-2 mb-3">
+                  <Crown size={14} className="text-amber-400" />
+                  <span className="text-amber-400 text-xs font-medium uppercase tracking-wider">Premium Themes</span>
+                  {!settings.isPremium && <Lock size={12} className="text-amber-400/50" />}
                 </div>
+                <p className="text-white/40 text-xs mb-3">Exclusive themes with special effects & animations</p>
+                <div className="grid grid-cols-5 gap-2">
+                  {premiumThemes.map((theme) => (
+                    <motion.button
+                      key={theme.id}
+                      whileTap={{ scale: 0.95 }}
+                      whileHover={{ scale: settings.isPremium ? 1.05 : 1 }}
+                      onClick={() => handleThemeSelect(theme.id)}
+                      className={cn(
+                        'rounded-xl p-1.5 border-2 transition-all relative',
+                        settings.boardTheme === theme.id && settings.isPremium
+                          ? 'border-amber-400 bg-amber-500/10 shadow-lg shadow-amber-500/20'
+                          : 'border-transparent',
+                        !settings.isPremium && 'opacity-70'
+                      )}
+                    >
+                      <div className="grid grid-cols-2 gap-0.5 w-full aspect-square rounded-lg overflow-hidden shadow-md relative">
+                        <div className={cn(theme.light, 'relative')} />
+                        <div className={cn(theme.dark, 'relative')} />
+                        <div className={cn(theme.dark, 'relative')} />
+                        <div className={cn(theme.light, 'relative')} />
+                        {!settings.isPremium && (
+                          <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center">
+                            <Lock size={12} className="text-white/80" />
+                          </div>
+                        )}
+                        {settings.isPremium && (
+                          <div className="absolute inset-0 pointer-events-none">
+                            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent animate-shimmer" />
+                          </div>
+                        )}
+                      </div>
+                      <p className={cn(
+                        "text-[9px] text-center font-medium mt-1 truncate",
+                        settings.boardTheme === theme.id && settings.isPremium ? 'text-amber-400' : 'text-white/40'
+                      )}>{theme.name.replace(/^[^\s]+\s/, '')}</p>
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
             </div>
-            
+
             <SettingToggle
               icon={Moon}
               label="Dark Mode"
@@ -459,9 +459,9 @@ export function SettingsScreen() {
             Subscription
           </h3>
           <div className="glass rounded-2xl px-4">
-            <SettingLink 
-              icon={Crown} 
-              label={settings.isPremium ? "Manage Subscription" : "Upgrade to Premium"} 
+            <SettingLink
+              icon={Crown}
+              label={settings.isPremium ? "Manage Subscription" : "Upgrade to Premium"}
               value={settings.isPremium ? "Active" : "$1.99/mo"}
               onClick={() => setShowSubscription(true)}
               premium
@@ -479,25 +479,25 @@ export function SettingsScreen() {
             Support & Help
           </h3>
           <div className="glass rounded-2xl px-4">
-            <SettingLink 
-              icon={HelpCircle} 
-              label="How to Play" 
+            <SettingLink
+              icon={HelpCircle}
+              label="How to Play"
               onClick={() => navigate('/instructions')}
             />
-            <SettingLink 
-              icon={Headphones} 
-              label="Customer Support" 
+            <SettingLink
+              icon={Headphones}
+              label="Customer Support"
               value="Contact Us"
               onClick={() => setShowSupport(true)}
             />
-            <SettingLink 
-              icon={FileText} 
-              label="Terms & Conditions" 
+            <SettingLink
+              icon={FileText}
+              label="Terms & Conditions"
               onClick={() => setShowTerms(true)}
             />
-            <SettingLink 
-              icon={Shield} 
-              label="Privacy Policy" 
+            <SettingLink
+              icon={Shield}
+              label="Privacy Policy"
               onClick={() => setShowPrivacy(true)}
             />
           </div>
@@ -513,9 +513,9 @@ export function SettingsScreen() {
             Danger Zone
           </h3>
           <div className="glass rounded-2xl px-4">
-            <SettingLink 
-              icon={Trash2} 
-              label="Reset All Data" 
+            <SettingLink
+              icon={Trash2}
+              label="Reset All Data"
               onClick={() => setShowResetConfirm(true)}
               danger
             />
@@ -523,7 +523,7 @@ export function SettingsScreen() {
         </motion.div>
 
         {/* Version */}
-        <motion.p 
+        <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
@@ -563,9 +563,9 @@ export function SettingsScreen() {
                   <div className="relative">
                     <div className="w-20 h-20 rounded-2xl overflow-hidden bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg">
                       {editProfilePicture ? (
-                        <img 
-                          src={editProfilePicture} 
-                          alt="Profile" 
+                        <img
+                          src={editProfilePicture}
+                          alt="Profile"
                           className="w-full h-full object-cover"
                         />
                       ) : (
@@ -582,7 +582,7 @@ export function SettingsScreen() {
                       </motion.button>
                     )}
                   </div>
-                  
+
                   {/* Upload Button */}
                   <div className="flex-1 space-y-2">
                     <input
@@ -622,7 +622,7 @@ export function SettingsScreen() {
                       className={cn(
                         'w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all',
                         editAvatar === avatar && !editProfilePicture
-                          ? 'bg-gradient-to-br from-amber-400 to-orange-500 scale-110 shadow-lg shadow-amber-500/30' 
+                          ? 'bg-gradient-to-br from-amber-400 to-orange-500 scale-110 shadow-lg shadow-amber-500/30'
                           : 'bg-white/10 hover:bg-white/20'
                       )}
                     >
@@ -915,7 +915,7 @@ export function SettingsScreen() {
               {/* Features */}
               <div className="space-y-3">
                 <p className="text-white/50 text-xs uppercase tracking-wider">Premium Features</p>
-                
+
                 {[
                   { icon: '🎨', text: '5 Exclusive Board Themes', desc: 'Diamond, Ruby, Emerald, Gold, Obsidian' },
                   { icon: '🚫', text: 'Ad-Free Experience', desc: 'Play without interruptions' },
@@ -946,7 +946,7 @@ export function SettingsScreen() {
                   <div className="text-center">
                     <p className="text-green-400 font-bold mb-2">✓ You're a Premium Member!</p>
                     <p className="text-white/50 text-sm">
-                      {settings.premiumExpiry 
+                      {settings.premiumExpiry
                         ? `Your subscription renews on ${new Date(settings.premiumExpiry).toLocaleDateString()}`
                         : 'Thank you for your support!'
                       }
@@ -970,7 +970,7 @@ export function SettingsScreen() {
                       <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-transparent" />
                       <span className="relative z-10">Subscribe Now - $1.99/mo</span>
                     </motion.button>
-                    
+
                     <motion.button
                       whileTap={{ scale: 0.98 }}
                       onClick={() => setShowSubscription(false)}
@@ -978,7 +978,7 @@ export function SettingsScreen() {
                     >
                       Maybe Later
                     </motion.button>
-                    
+
                     <p className="text-white/30 text-xs text-center">
                       Cancel anytime. Subscription auto-renews monthly.
                     </p>
@@ -1158,7 +1158,7 @@ export function SettingsScreen() {
                 <section>
                   <h3 className="text-white font-bold mb-2">11. Contact</h3>
                   <p>For questions about these terms, contact us at:<br />
-                  <span className="text-amber-400">Support@Dipomdutta.com</span></p>
+                    <span className="text-amber-400">Support@Dipomdutta.com</span></p>
                 </section>
               </div>
 
@@ -1202,7 +1202,7 @@ export function SettingsScreen() {
               <div className="flex-1 overflow-y-auto space-y-4 text-white/70 text-sm pr-2">
                 <section>
                   <h3 className="text-white font-bold mb-2">1. Introduction</h3>
-                  <p>Chess Master Pro ("we", "our", "us") respects your privacy and is committed to protecting your personal data. This policy explains how we collect, use, and safeguard your information.</p>
+                  <p>Chess Champ ("we", "our", "us") respects your privacy and is committed to protecting your personal data. This policy explains how we collect, use, and safeguard your information.</p>
                 </section>
 
                 <section>
@@ -1215,7 +1215,7 @@ export function SettingsScreen() {
                     <li>Gender preference</li>
                     <li>Profile picture</li>
                   </ul>
-                  
+
                   <p className="font-medium text-white/80 mt-3">Gameplay Data:</p>
                   <ul className="list-disc list-inside mt-1 space-y-1">
                     <li>Match history and statistics</li>
@@ -1223,7 +1223,7 @@ export function SettingsScreen() {
                     <li>Virtual coin transactions</li>
                     <li>Puzzle completion data</li>
                   </ul>
-                  
+
                   <p className="font-medium text-white/80 mt-3">Device Information:</p>
                   <ul className="list-disc list-inside mt-1 space-y-1">
                     <li>Device type and operating system</li>
@@ -1294,7 +1294,7 @@ export function SettingsScreen() {
                 <section>
                   <h3 className="text-white font-bold mb-2">11. Contact Us</h3>
                   <p>For privacy concerns or data requests, contact:<br />
-                  <span className="text-amber-400">Support@Dipomdutta.com</span></p>
+                    <span className="text-amber-400">Support@Dipomdutta.com</span></p>
                   <p className="mt-2">We will respond to all requests within 30 days.</p>
                 </section>
               </div>
