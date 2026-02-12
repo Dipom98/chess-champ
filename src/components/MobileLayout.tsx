@@ -14,10 +14,10 @@ interface MobileLayoutProps {
   onBack?: () => void;
 }
 
-export function MobileLayout({ 
-  children, 
-  title, 
-  showBack = false, 
+export function MobileLayout({
+  children,
+  title,
+  showBack = false,
   showTabs = true,
   rightAction,
   leftAction,
@@ -35,21 +35,22 @@ export function MobileLayout({
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f0a1e] via-[#1a1333] to-[#0d1b2a] flex flex-col relative overflow-hidden">
-      {/* Background decorations */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    // Fixed height wrapper with safe area support
+    <div className="fixed inset-0 h-[100dvh] w-full bg-gradient-to-br from-[#0f0a1e] via-[#1a1333] to-[#0d1b2a] flex flex-col overflow-hidden">
+      {/* Background decorations - Lower z-index */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 right-0 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl" />
         <div className="absolute top-1/2 left-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl" />
       </div>
 
-      {/* Header */}
+      {/* Header - Fixed at top, z-index above content */}
       {(title || showBack) && (
-        <header className="relative z-10 flex items-center justify-between px-5 py-4 glass-dark">
+        <header className="flex-none relative z-50 flex items-center justify-between px-5 py-4 glass-dark pt-safe-top">
           <div className="flex items-center gap-3">
             {leftAction}
             {showBack && !leftAction && (
-              <motion.button 
+              <motion.button
                 whileTap={{ scale: 0.9 }}
                 onClick={() => onBack ? onBack() : navigate(-1)}
                 className="p-2 -ml-2 text-white/80 hover:text-white rounded-xl hover:bg-white/10 transition-colors"
@@ -65,24 +66,24 @@ export function MobileLayout({
         </header>
       )}
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto relative z-10">
+      {/* Main Content - Scrollable area */}
+      <main className="flex-1 overflow-y-auto overflow-x-hidden relative z-10 w-full no-scrollbar">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
-          className="h-full"
+          className="min-h-full pb-20 p-safe" // Add padding bottom to account for tabs
         >
           {children}
         </motion.div>
       </main>
 
-      {/* Bottom Navigation */}
+      {/* Bottom Navigation - Fixed at bottom, z-index above content */}
       {showTabs && (
-        <nav className="relative z-10 glass-dark pb-safe">
+        <nav className="flex-none relative z-50 glass-dark pb-safe-bottom">
           <div className="flex justify-around items-center py-2 px-2">
             {tabs.map((tab) => {
-              const isActive = location.pathname === tab.path || 
+              const isActive = location.pathname === tab.path ||
                 (tab.path === '/home' && location.pathname === '/');
               return (
                 <motion.button
@@ -91,13 +92,13 @@ export function MobileLayout({
                   onClick={() => navigate(tab.path)}
                   className={cn(
                     'relative flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all duration-300',
-                    isActive 
-                      ? 'text-amber-400' 
+                    isActive
+                      ? 'text-amber-400'
                       : 'text-white/50 hover:text-white/80'
                   )}
                 >
                   {isActive && (
-                    <motion.div 
+                    <motion.div
                       layoutId="activeTabBg"
                       className="absolute inset-0 bg-amber-500/15 rounded-2xl"
                       transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}

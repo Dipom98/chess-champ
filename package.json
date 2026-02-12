@@ -10,8 +10,10 @@
   },
   "dependencies": {
     "@capacitor/android": "^8.1.0",
+    "@capacitor/app": "^8.0.1",
     "@capacitor/cli": "^8.1.0",
     "@capacitor/core": "^8.1.0",
+    "@capacitor/push-notifications": "^8.0.1",
     "clsx": "2.1.1",
     "framer-motion": "^12.34.0",
     "lucide-react": "^0.563.0",

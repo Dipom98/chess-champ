@@ -846,7 +846,8 @@ export function SettingsScreen() {
                 <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center">
                   <Lock size={32} className="text-white" />
                 </div>
-                <h2 className="text-2xl font-bold text-white">Premium Theme</h2>
+                <h2 className="text-2xl font-bold text-white mt-4">Chess Champ</h2>
+                <p className="text-white/60">v1.0.7 • Made by Dipom Dutta</p>
                 <p className="text-white/50 mt-2">
                   This theme is exclusive to Premium members. Upgrade to unlock all 5 premium themes!
                 </p>

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
+import {
   Search, UserPlus, MessageCircle, Swords, MoreVertical,
   X, Check, Clock, TrendingUp, Send, ArrowLeft
 } from 'lucide-react';
@@ -29,7 +29,7 @@ export function FriendsScreen() {
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
   const [showAddFriend, setShowAddFriend] = useState(false);
   const [newFriendName, setNewFriendName] = useState('');
-  
+
   // Chat state
   const [chatFriend, setChatFriend] = useState<Friend | null>(null);
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
@@ -39,10 +39,10 @@ export function FriendsScreen() {
   const onlineFriends = friends.filter(f => f.online);
   const offlineFriends = friends.filter(f => !f.online);
 
-  const filteredOnline = onlineFriends.filter(f => 
+  const filteredOnline = onlineFriends.filter(f =>
     f.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
-  const filteredOffline = offlineFriends.filter(f => 
+  const filteredOffline = offlineFriends.filter(f =>
     f.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -77,7 +77,7 @@ export function FriendsScreen() {
   const openChat = (friend: Friend) => {
     setChatFriend(friend);
     setSelectedFriend(null);
-    
+
     // Create chat room if doesn't exist
     if (!chatRooms.find(room => room.friendId === friend.id)) {
       // Add some sample welcome messages
@@ -97,7 +97,7 @@ export function FriendsScreen() {
           isMe: false,
         },
       ];
-      
+
       setChatRooms(prev => [...prev, {
         friendId: friend.id,
         messages: welcomeMessages,
@@ -140,9 +140,9 @@ export function FriendsScreen() {
           "Sure thing!",
           "Sounds good!",
         ];
-        
+
         const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-        
+
         const replyMessage: Message = {
           id: (Date.now() + 1).toString(),
           senderId: chatFriend.id,
@@ -177,12 +177,12 @@ export function FriendsScreen() {
   const FriendCard = ({ friend }: { friend: Friend }) => {
     const isPending = pendingInvites.includes(friend.id);
     const rankInfo = RANKS[friend.rank];
-    
+
     return (
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/5 rounded-2xl p-4 flex items-center gap-3"
+        className="bg-white/80 dark:bg-white/5 rounded-2xl p-4 flex items-center gap-3 shadow-sm dark:shadow-none"
       >
         <div className="relative">
           <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-2xl">
@@ -192,11 +192,11 @@ export function FriendsScreen() {
             <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-indigo-950" />
           )}
         </div>
-        
+
         <div className="flex-1">
           <div className="flex items-center gap-2">
             <span className="text-sm">{friend.country.flag}</span>
-            <p className="text-white font-medium">{friend.name}</p>
+            <p className="text-gray-900 dark:text-white font-medium">{friend.name}</p>
             <div className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${rankInfo.color}20`, color: rankInfo.color }}>
               <span>{rankInfo.icon}</span>
               <span>Lv.{friend.level}</span>
@@ -204,7 +204,7 @@ export function FriendsScreen() {
           </div>
           <p className={cn(
             'text-sm',
-            friend.online ? 'text-green-400' : 'text-white/40'
+            friend.online ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-white/40'
           )}>
             {friend.online ? 'Online' : friend.lastSeen}
           </p>
@@ -239,12 +239,12 @@ export function FriendsScreen() {
   // Chat View
   if (chatFriend) {
     const messages = getCurrentChatMessages();
-    
+
     return (
-      <MobileLayout 
+      <MobileLayout
         title=""
         leftAction={
-          <button 
+          <button
             onClick={() => setChatFriend(null)}
             className="p-2 text-white/70 hover:text-white"
           >
@@ -306,7 +306,7 @@ export function FriendsScreen() {
                 >
                   <div className={cn(
                     "max-w-[80%] px-4 py-2.5 rounded-2xl",
-                    message.isMe 
+                    message.isMe
                       ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-br-sm"
                       : "bg-white/10 text-white rounded-bl-sm"
                   )}>
@@ -356,10 +356,10 @@ export function FriendsScreen() {
   }
 
   return (
-    <MobileLayout 
-      title="Friends" 
+    <MobileLayout
+      title="Friends"
       rightAction={
-        <button 
+        <button
           onClick={() => setShowAddFriend(true)}
           className="p-2 text-amber-400"
         >
@@ -385,7 +385,7 @@ export function FriendsScreen() {
           <div>
             <div className="flex items-center gap-2 mb-3">
               <div className="w-2 h-2 bg-green-500 rounded-full" />
-              <h3 className="text-white/60 text-sm font-medium uppercase tracking-wider">
+              <h3 className="text-gray-600 dark:text-white/60 text-sm font-medium uppercase tracking-wider">
                 Online ({filteredOnline.length})
               </h3>
             </div>
@@ -400,7 +400,7 @@ export function FriendsScreen() {
         {/* Offline Friends */}
         {filteredOffline.length > 0 && (
           <div>
-            <h3 className="text-white/60 text-sm font-medium uppercase tracking-wider mb-3">
+            <h3 className="text-gray-600 dark:text-white/60 text-sm font-medium uppercase tracking-wider mb-3">
               Offline ({filteredOffline.length})
             </h3>
             <div className="space-y-3">
@@ -440,8 +440,8 @@ export function FriendsScreen() {
                 <span className={cn(
                   'w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold',
                   i === 0 ? 'bg-amber-400 text-black' :
-                  i === 1 ? 'bg-gray-300 text-black' :
-                  'bg-amber-700 text-white'
+                    i === 1 ? 'bg-gray-300 text-black' :
+                      'bg-amber-700 text-white'
                 )}>
                   {i + 1}
                 </span>
@@ -462,18 +462,18 @@ export function FriendsScreen() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end justify-center z-50"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end justify-center z-[100]"
             onClick={() => setSelectedFriend(null)}
           >
             <motion.div
-              initial={{ y: 100 }}
+              initial={{ y: 200 }}
               animate={{ y: 0 }}
-              exit={{ y: 100 }}
+              exit={{ y: 200 }}
               onClick={(e) => e.stopPropagation()}
               className="bg-indigo-900 rounded-t-3xl p-6 w-full max-w-lg space-y-4 pb-10"
             >
               <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-4" />
-              
+
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-3xl">
                   {selectedFriend.avatar}
@@ -495,7 +495,7 @@ export function FriendsScreen() {
                 Challenge to Play
               </button>
 
-              <button 
+              <button
                 onClick={() => openChat(selectedFriend)}
                 className="w-full py-4 bg-white/10 rounded-2xl text-white font-bold flex items-center justify-center gap-2"
               >
@@ -536,7 +536,7 @@ export function FriendsScreen() {
               className="bg-indigo-900 rounded-3xl p-6 w-full max-w-sm space-y-4"
             >
               <h2 className="text-2xl font-bold text-white text-center">Add Friend</h2>
-              
+
               <input
                 type="text"
                 placeholder="Enter username"

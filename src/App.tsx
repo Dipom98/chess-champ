@@ -1,4 +1,6 @@
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { App as CapacitorApp } from '@capacitor/app';
 import { useGameStore } from '@/store/gameStore';
 import { WelcomeScreen } from '@/pages/WelcomeScreen';
 import { HomeScreen } from '@/pages/HomeScreen';
@@ -17,13 +19,13 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route 
-        path="/" 
+      <Route
+        path="/"
         element={
-          hasSeenWelcome 
-            ? <Navigate to="/home" replace /> 
+          hasSeenWelcome
+            ? <Navigate to="/home" replace />
             : <Navigate to="/welcome" replace />
-        } 
+        }
       />
       <Route path="/welcome" element={<WelcomeScreen />} />
       <Route path="/home" element={<HomeScreen />} />
@@ -41,12 +43,61 @@ function AppRoutes() {
   );
 }
 
+function AppContent() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    CapacitorApp.addListener('backButton', ({ canGoBack }) => {
+      // If we're on the home screen or welcome screen, minimize/exit
+      if (location.pathname === '/home' || location.pathname === '/' || location.pathname === '/welcome') {
+        CapacitorApp.exitApp();
+      } else {
+        // Otherwise go back if possible
+        if (canGoBack) {
+          navigate(-1);
+        } else {
+          // If can't go back in history, maybe just navigate home
+          navigate('/home');
+        }
+      }
+    });
+
+    return () => {
+      CapacitorApp.removeAllListeners();
+    };
+  }, [navigate, location]);
+
+  useEffect(() => {
+    const checkPermissions = async () => {
+      try {
+        // Request notification permissions
+        if (CapacitorApp) {
+          const { PushNotifications } = await import('@capacitor/push-notifications');
+          const status = await PushNotifications.checkPermissions();
+          if (status.receive === 'prompt') {
+            await PushNotifications.requestPermissions();
+          }
+        }
+      } catch (e) {
+        console.log('Push notifications not available or failed', e);
+      }
+    };
+
+    checkPermissions();
+  }, []);
+
+  return (
+    <div className="max-w-md mx-auto min-h-screen bg-indigo-950 relative overflow-hidden">
+      <AppRoutes />
+    </div>
+  );
+}
+
 export function App() {
   return (
     <HashRouter>
-      <div className="max-w-md mx-auto min-h-screen bg-indigo-950 relative overflow-hidden">
-        <AppRoutes />
-      </div>
+      <AppContent />
     </HashRouter>
   );
 }
