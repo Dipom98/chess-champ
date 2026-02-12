@@ -1,4 +1,4 @@
-package com.chessmasterpro.app;
+package com.chesschamp.app;
 
 import com.getcapacitor.BridgeActivity;
 
