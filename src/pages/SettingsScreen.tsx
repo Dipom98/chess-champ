@@ -529,7 +529,7 @@ export function SettingsScreen() {
           transition={{ delay: 0.3 }}
           className="text-center text-white/20 text-xs py-6"
         >
-          Chess Champ v1.0.0 • Made with ♟️
+          Chess Champ v1.0.8 • Made by Dipom Dutta ♟️
         </motion.p>
       </div>
 

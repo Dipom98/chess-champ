@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, UserPlus, MessageCircle, Swords, MoreVertical,
@@ -456,67 +457,70 @@ export function FriendsScreen() {
       </div>
 
       {/* Friend Options Modal */}
-      <AnimatePresence>
-        {selectedFriend && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end justify-center z-[100]"
-            onClick={() => setSelectedFriend(null)}
-          >
+      {createPortal(
+        <AnimatePresence>
+          {selectedFriend && (
             <motion.div
-              initial={{ y: 200 }}
-              animate={{ y: 0 }}
-              exit={{ y: 200 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-indigo-900 rounded-t-3xl p-6 w-full max-w-lg space-y-4 pb-10"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end justify-center z-[9999]"
+              onClick={() => setSelectedFriend(null)}
             >
-              <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-4" />
+              <motion.div
+                initial={{ y: 200 }}
+                animate={{ y: 0 }}
+                exit={{ y: 200 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-indigo-900 rounded-t-3xl p-6 w-full max-w-lg space-y-4 pb-10"
+              >
+                <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-4" />
 
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-3xl">
-                  {selectedFriend.avatar}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">{selectedFriend.country.flag}</span>
-                    <h3 className="text-xl font-bold text-white">{selectedFriend.name}</h3>
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-3xl">
+                    {selectedFriend.avatar}
                   </div>
-                  <p className="text-amber-400">{selectedFriend.rank} • Level {selectedFriend.level}</p>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">{selectedFriend.country.flag}</span>
+                      <h3 className="text-xl font-bold text-white">{selectedFriend.name}</h3>
+                    </div>
+                    <p className="text-amber-400">{selectedFriend.rank} • Level {selectedFriend.level}</p>
+                  </div>
                 </div>
-              </div>
 
-              <button
-                onClick={() => handleInvite(selectedFriend.id)}
-                className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl text-white font-bold flex items-center justify-center gap-2"
-              >
-                <Swords size={20} />
-                Challenge to Play
-              </button>
+                <button
+                  onClick={() => handleInvite(selectedFriend.id)}
+                  className="w-full py-4 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl text-white font-bold flex items-center justify-center gap-2"
+                >
+                  <Swords size={20} />
+                  Challenge to Play
+                </button>
 
-              <button
-                onClick={() => openChat(selectedFriend)}
-                className="w-full py-4 bg-white/10 rounded-2xl text-white font-bold flex items-center justify-center gap-2"
-              >
-                <MessageCircle size={20} />
-                Send Message
-              </button>
+                <button
+                  onClick={() => openChat(selectedFriend)}
+                  className="w-full py-4 bg-white/10 rounded-2xl text-white font-bold flex items-center justify-center gap-2"
+                >
+                  <MessageCircle size={20} />
+                  Send Message
+                </button>
 
-              <button
-                onClick={() => {
-                  removeFriend(selectedFriend.id);
-                  setSelectedFriend(null);
-                }}
-                className="w-full py-4 bg-red-500/20 rounded-2xl text-red-400 font-bold flex items-center justify-center gap-2"
-              >
-                <X size={20} />
-                Remove Friend
-              </button>
+                <button
+                  onClick={() => {
+                    removeFriend(selectedFriend.id);
+                    setSelectedFriend(null);
+                  }}
+                  className="w-full py-4 bg-red-500/20 rounded-2xl text-red-400 font-bold flex items-center justify-center gap-2"
+                >
+                  <X size={20} />
+                  Remove Friend
+                </button>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
       {/* Add Friend Modal */}
       <AnimatePresence>
