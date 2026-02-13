@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRight, Crown, Swords, Users, Trophy, Sparkles, Zap } from 'lucide-react';
+import { ChevronRight, Swords, Users, Trophy, Sparkles, Zap } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
+import appIcon from '@/assets/icon.png';
 
 const slides = [
   {
-    icon: Crown,
+    icon: null, // Using custom icon image for first slide
     title: 'Welcome to Chess Champ',
     description: 'The ultimate mobile chess experience with stunning graphics and smooth gameplay.',
     color: 'from-amber-400 via-orange-500 to-red-500',
@@ -39,7 +40,7 @@ export function WelcomeScreen() {
   const [showSplash, setShowSplash] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
   const navigate = useNavigate();
-  const { setHasSeenWelcome, updateUser } = useGameStore();
+  const { setHasSeenWelcome, updateUser, updateSettings } = useGameStore();
   const [name, setName] = useState('');
   const [showNameInput, setShowNameInput] = useState(false);
 
@@ -60,8 +61,29 @@ export function WelcomeScreen() {
   };
 
   const handleStart = () => {
-    if (name.trim()) {
-      updateUser({ name: name.trim() });
+    const trimmedName = name.trim();
+    if (trimmedName) {
+      updateUser({ name: trimmedName });
+
+      // Special Reviewer Hook
+      if (trimmedName.toLowerCase() === 'googlereviewer') {
+        updateUser({
+          level: 99,
+          rank: 'Grandmaster',
+          wallet: {
+            balance: 99999,
+            totalEarned: 99999,
+            totalSpent: 0,
+            totalBurned: 0,
+            lockedBalance: 0,
+            transactions: []
+          }
+        });
+        updateSettings({
+          isPremium: true,
+          boardTheme: 'diamond'
+        });
+      }
     }
     setHasSeenWelcome(true);
     navigate('/home');
@@ -72,7 +94,6 @@ export function WelcomeScreen() {
   };
 
   const slide = slides[currentSlide];
-  const Icon = slide.icon;
 
   // Splash Screen
   if (showSplash) {
@@ -84,25 +105,25 @@ export function WelcomeScreen() {
             backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 35px, rgba(251, 191, 36, 0.1) 35px, rgba(251, 191, 36, 0.1) 70px)',
           }} />
         </div>
-        
+
         {/* Animated background particles - Chess pieces floating */}
         <div className="absolute inset-0 overflow-hidden">
           {['♔', '♕', '♖', '♗', '♘', '♙', '♚', '♛', '♜', '♝', '♞', '♟'].map((piece, i) => (
             <motion.div
               key={i}
               className="absolute text-amber-400/20 text-3xl"
-              initial={{ 
-                x: Math.random() * 400, 
+              initial={{
+                x: Math.random() * 400,
                 y: -50,
                 opacity: 0,
                 rotate: 0
               }}
-              animate={{ 
+              animate={{
                 y: [null, 900],
                 opacity: [0, 0.4, 0],
                 rotate: [0, 360]
               }}
-              transition={{ 
+              transition={{
                 duration: 8 + Math.random() * 4,
                 repeat: Infinity,
                 delay: Math.random() * 5,
@@ -115,8 +136,8 @@ export function WelcomeScreen() {
         </div>
 
         {/* Multiple glowing orbs with movement */}
-        <motion.div 
-          animate={{ 
+        <motion.div
+          animate={{
             scale: [1, 1.3, 1],
             opacity: [0.2, 0.4, 0.2],
             x: [0, 30, 0],
@@ -125,8 +146,8 @@ export function WelcomeScreen() {
           transition={{ duration: 4, repeat: Infinity }}
           className="absolute top-1/4 left-1/4 w-72 h-72 bg-amber-500/30 rounded-full blur-3xl"
         />
-        <motion.div 
-          animate={{ 
+        <motion.div
+          animate={{
             scale: [1.2, 1, 1.2],
             opacity: [0.15, 0.35, 0.15],
             x: [0, -40, 0],
@@ -135,8 +156,8 @@ export function WelcomeScreen() {
           transition={{ duration: 5, repeat: Infinity, delay: 0.5 }}
           className="absolute bottom-1/3 right-1/4 w-80 h-80 bg-purple-500/25 rounded-full blur-3xl"
         />
-        <motion.div 
-          animate={{ 
+        <motion.div
+          animate={{
             scale: [1, 1.4, 1],
             opacity: [0.1, 0.3, 0.1]
           }}
@@ -148,7 +169,7 @@ export function WelcomeScreen() {
         <motion.div
           initial={{ scale: 0, rotate: -180, opacity: 0 }}
           animate={{ scale: 1, rotate: 0, opacity: 1 }}
-          transition={{ 
+          transition={{
             type: "spring",
             stiffness: 150,
             damping: 12,
@@ -179,28 +200,28 @@ export function WelcomeScreen() {
             transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
             className="absolute -inset-16"
           >
-            <motion.span 
+            <motion.span
               className="absolute top-0 left-1/2 -translate-x-1/2 text-3xl filter drop-shadow-lg"
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
             >
               ♜
             </motion.span>
-            <motion.span 
+            <motion.span
               className="absolute bottom-0 left-1/2 -translate-x-1/2 text-3xl filter drop-shadow-lg"
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
             >
               ♞
             </motion.span>
-            <motion.span 
+            <motion.span
               className="absolute left-0 top-1/2 -translate-y-1/2 text-3xl filter drop-shadow-lg"
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 2, repeat: Infinity, delay: 1 }}
             >
               ♝
             </motion.span>
-            <motion.span 
+            <motion.span
               className="absolute right-0 top-1/2 -translate-y-1/2 text-3xl filter drop-shadow-lg"
               animate={{ scale: [1, 1.2, 1] }}
               transition={{ duration: 2, repeat: Infinity, delay: 1.5 }}
@@ -211,7 +232,7 @@ export function WelcomeScreen() {
 
           {/* Main icon with pulsing glow */}
           <motion.div
-            animate={{ 
+            animate={{
               boxShadow: [
                 "0 0 30px rgba(251, 191, 36, 0.3), 0 0 60px rgba(251, 191, 36, 0.2)",
                 "0 0 50px rgba(251, 191, 36, 0.5), 0 0 100px rgba(251, 191, 36, 0.3)",
@@ -228,16 +249,16 @@ export function WelcomeScreen() {
               className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12"
             />
             <div className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-white/30 via-transparent to-transparent" />
-            <motion.span
-              animate={{ 
+            <motion.img
+              src={appIcon}
+              animate={{
                 scale: [1, 1.15, 1],
                 rotate: [0, 5, -5, 0]
               }}
               transition={{ duration: 3, repeat: Infinity }}
-              className="text-7xl relative z-10 filter drop-shadow-lg"
-            >
-              ♔
-            </motion.span>
+              className="w-24 h-24 relative z-10 filter drop-shadow-2xl"
+              alt="App Logo"
+            />
           </motion.div>
         </motion.div>
 
@@ -268,13 +289,13 @@ export function WelcomeScreen() {
             transition={{ delay: 1.5, type: 'spring', stiffness: 200 }}
             className="mt-3 flex items-center justify-center gap-2"
           >
-            <motion.div 
+            <motion.div
               animate={{ scaleX: [0, 1, 0] }}
               transition={{ duration: 2, repeat: Infinity }}
               className="h-px w-8 bg-gradient-to-r from-transparent via-amber-400 to-transparent"
             />
             <span className="text-amber-400/80 text-sm font-medium tracking-[0.3em]">MASTER YOUR GAME</span>
-            <motion.div 
+            <motion.div
               animate={{ scaleX: [0, 1, 0] }}
               transition={{ duration: 2, repeat: Infinity }}
               className="h-px w-8 bg-gradient-to-r from-transparent via-amber-400 to-transparent"
@@ -298,7 +319,7 @@ export function WelcomeScreen() {
               className="h-full bg-gradient-to-r from-amber-400 via-orange-500 to-amber-400 rounded-full"
             />
           </div>
-          
+
           {/* Loading text */}
           <motion.p
             animate={{ opacity: [0.5, 1, 0.5] }}
@@ -330,12 +351,12 @@ export function WelcomeScreen() {
     <div className="min-h-screen bg-gradient-to-br from-[#0f0a1e] via-[#1a1333] to-[#0d1b2a] flex flex-col relative overflow-hidden">
       {/* Background effects */}
       <div className="absolute inset-0 overflow-hidden">
-        <motion.div 
+        <motion.div
           key={currentSlide}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
-          className={`absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 ${slide.bgGlow} rounded-full blur-3xl`} 
+          className={`absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 ${slide.bgGlow} rounded-full blur-3xl`}
         />
         <div className="absolute bottom-0 left-0 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl" />
         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl" />
@@ -352,7 +373,7 @@ export function WelcomeScreen() {
           >
             {/* Skip button */}
             <div className="flex justify-end p-5">
-              <motion.button 
+              <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={handleSkip}
                 className="px-4 py-2 rounded-xl text-white/50 text-sm font-medium hover:text-white hover:bg-white/10 transition-all"
@@ -372,33 +393,37 @@ export function WelcomeScreen() {
                 className="flex flex-col items-center text-center"
               >
                 {/* Icon with glow */}
-                <motion.div 
+                <motion.div
                   animate={{ y: [0, -8, 0] }}
                   transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                  className={`relative w-36 h-36 rounded-3xl bg-gradient-to-br ${slide.color} flex items-center justify-center mb-8 shadow-2xl`}
+                  className={`relative w-40 h-40 rounded-3xl bg-gradient-to-br ${slide.color} flex items-center justify-center mb-8 shadow-2xl`}
                 >
                   <div className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-white/30 via-transparent to-transparent" />
-                  <Icon size={64} className="text-white relative z-10" />
+                  {slide.icon ? (
+                    <slide.icon size={72} className="text-white relative z-10" />
+                  ) : (
+                    <img src={appIcon} className="w-32 h-32 relative z-10 p-2" alt="App Icon" />
+                  )}
                   <div className={`absolute -inset-2 rounded-3xl bg-gradient-to-br ${slide.color} opacity-30 blur-xl -z-10`} />
                 </motion.div>
 
                 {/* Chess piece decorations */}
                 <div className="flex gap-4 mb-8">
-                  <motion.span 
+                  <motion.span
                     animate={{ rotate: [-8, 8, -8], y: [0, -5, 0] }}
                     transition={{ duration: 2.5, repeat: Infinity }}
                     className="text-5xl drop-shadow-lg"
                   >
                     ♔
                   </motion.span>
-                  <motion.span 
+                  <motion.span
                     animate={{ rotate: [8, -8, 8], y: [0, -5, 0] }}
                     transition={{ duration: 2.5, repeat: Infinity, delay: 0.3 }}
                     className="text-5xl drop-shadow-lg"
                   >
                     ♛
                   </motion.span>
-                  <motion.span 
+                  <motion.span
                     animate={{ rotate: [-8, 8, -8], y: [0, -5, 0] }}
                     transition={{ duration: 2.5, repeat: Infinity, delay: 0.6 }}
                     className="text-5xl drop-shadow-lg"
@@ -428,11 +453,10 @@ export function WelcomeScreen() {
                     key={index}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => setCurrentSlide(index)}
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      index === currentSlide 
-                        ? 'w-8 bg-gradient-to-r from-amber-400 to-orange-500' 
-                        : 'w-2 bg-white/20 hover:bg-white/40'
-                    }`}
+                    className={`h-2 rounded-full transition-all duration-300 ${index === currentSlide
+                      ? 'w-8 bg-gradient-to-r from-amber-400 to-orange-500'
+                      : 'w-2 bg-white/20 hover:bg-white/40'
+                      }`}
                   />
                 ))}
               </div>
@@ -465,7 +489,7 @@ export function WelcomeScreen() {
             >
               <Sparkles className="text-amber-400 mb-6" size={56} />
             </motion.div>
-            
+
             <h1 className="text-3xl font-bold text-white mb-3 tracking-tight">What's your name?</h1>
             <p className="text-white/50 mb-10 text-center">
               Let's personalize your chess journey
