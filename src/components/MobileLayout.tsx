@@ -46,7 +46,7 @@ export function MobileLayout({
 
       {/* Header - Fixed at top, z-index above content */}
       {(title || showBack) && (
-        <header className="flex-none relative z-50 flex items-center justify-between px-5 py-4 glass-dark pt-safe-top">
+        <header className="flex-none relative z-50 flex items-center justify-between px-5 pt-[calc(env(safe-area-inset-top)+1rem)] pb-4 glass-dark">
           <div className="flex items-center gap-3">
             {leftAction}
             {showBack && !leftAction && (
@@ -72,7 +72,10 @@ export function MobileLayout({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
-          className="min-h-full pb-20 p-safe" // Add padding bottom to account for tabs
+          className={cn(
+            "min-h-full p-4",
+            showTabs ? "pb-24" : "pb-[calc(env(safe-area-inset-bottom)+1rem)]"
+          )}
         >
           {children}
         </motion.div>
@@ -80,21 +83,21 @@ export function MobileLayout({
 
       {/* Bottom Navigation - Fixed at bottom, z-index above content */}
       {showTabs && (
-        <nav className="flex-none relative z-50 glass-dark pb-safe-bottom">
+        <nav className="flex-none relative z-50 glass-dark pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)]">
           <div className="flex justify-around items-center py-2 px-2">
             {tabs.map((tab) => {
               const isActive = location.pathname === tab.path ||
-                (tab.path === '/home' && location.pathname === '/');
+                (tab.path === '/home' && location.pathname === '/') ||
+                (tab.path === '/play' && location.pathname === '/game');
+              const Icon = tab.icon;
               return (
                 <motion.button
                   key={tab.path}
                   whileTap={{ scale: 0.9 }}
                   onClick={() => navigate(tab.path)}
                   className={cn(
-                    'relative flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all duration-300',
-                    isActive
-                      ? 'text-amber-400'
-                      : 'text-white/50 hover:text-white/80'
+                    'tap-target relative flex flex-col items-center justify-center transition-all px-4',
+                    isActive ? 'text-amber-400' : 'text-white/40 hover:text-white/60'
                   )}
                 >
                   {isActive && (

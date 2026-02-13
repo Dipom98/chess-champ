@@ -8,11 +8,49 @@ html {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Design Tokens */
+:root {
+  /* Dark Mode (Default) */
+  --bg-primary: #0f0a1e;
+  --bg-secondary: #1a1333;
+  --bg-tertiary: #0d1b2a;
+  --surface: rgba(255, 255, 255, 0.05);
+  --surface-hover: rgba(255, 255, 255, 0.1);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.7);
+  --text-muted: rgba(255, 255, 255, 0.4);
+  --accent: #fbbf24;
+  --accent-hover: #f59e0b;
+  --border: rgba(255, 255, 255, 0.1);
+
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+}
+
 body {
-  background: linear-gradient(135deg, #0f0a1e 0%, #1a1333 50%, #0d1b2a 100%);
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 50%, var(--bg-tertiary) 100%);
+  color: var(--text-primary);
   overscroll-behavior: none;
   min-height: 100vh;
-  transition: background 0.3s ease;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* Light Mode Tokens */
+body.light-mode {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #e2e8f0;
+  --bg-tertiary: #f1f5f9;
+  --surface: rgba(0, 0, 0, 0.05);
+  --surface-hover: rgba(0, 0, 0, 0.1);
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --accent: #d97706;
+  /* Darker amber for better contrast in light mode */
+  --accent-hover: #b45309;
+  --border: rgba(0, 0, 0, 0.1);
 }
 
 /* Light Mode - Premium Light Theme */
@@ -36,29 +74,22 @@ body.light-mode .glass-dark {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
 }
 
-/* Text colors for light mode */
+/* Text colors for light mode - Improved Contrast */
 body.light-mode .text-white {
-  color: #1e293b !important;
+  color: var(--text-primary) !important;
 }
 
 body.light-mode .text-white\/50 {
-  color: rgba(30, 41, 59, 0.55) !important;
+  color: var(--text-secondary) !important;
 }
 
-body.light-mode .text-white\/40 {
-  color: rgba(30, 41, 59, 0.45) !important;
-}
-
+body.light-mode .text-white\/40,
 body.light-mode .text-white\/30 {
-  color: rgba(30, 41, 59, 0.35) !important;
+  color: var(--text-muted) !important;
 }
 
 body.light-mode .text-white\/70 {
-  color: rgba(30, 41, 59, 0.7) !important;
-}
-
-body.light-mode .text-white\/20 {
-  color: rgba(30, 41, 59, 0.25) !important;
+  color: var(--text-secondary) !important;
 }
 
 /* Background colors for light mode */
@@ -167,14 +198,41 @@ body.light-mode .shimmer {
   user-select: none;
 }
 
-input, textarea {
+input,
+textarea {
   -webkit-user-select: text;
   user-select: text;
 }
 
-/* Safe area padding for notched phones */
+/* Safe area utilities for mobile devices */
+:root {
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+}
+
+.pt-safe {
+  padding-top: var(--safe-area-inset-top);
+}
+
 .pb-safe {
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-bottom: var(--safe-area-inset-bottom);
+}
+
+.p-safe {
+  padding-top: var(--safe-area-inset-top);
+  padding-bottom: var(--safe-area-inset-bottom);
+  padding-left: var(--safe-area-inset-left);
+  padding-right: var(--safe-area-inset-right);
+}
+
+.mt-safe {
+  margin-top: var(--safe-area-inset-top);
+}
+
+.mb-safe {
+  margin-bottom: var(--safe-area-inset-bottom);
 }
 
 /* Hide scrollbars but allow scrolling */
@@ -190,6 +248,15 @@ input, textarea {
 /* Smooth scrolling */
 * {
   scroll-behavior: smooth;
+}
+
+/* Tap target standardization */
+.tap-target {
+  min-height: 48px;
+  min-width: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Glass effect */
@@ -220,40 +287,50 @@ input, textarea {
   0% {
     background-position: -200% 0;
   }
+
   100% {
     background-position: 200% 0;
   }
 }
 
 .shimmer {
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
 }
 
 /* Custom animations */
 @keyframes pulse-glow {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 20px rgba(251, 191, 36, 0.4);
   }
+
   50% {
     box-shadow: 0 0 40px rgba(251, 191, 36, 0.6);
   }
 }
 
 @keyframes float {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0px);
   }
+
   50% {
     transform: translateY(-10px);
   }
 }
 
 @keyframes glow {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.5;
   }
+
   50% {
     opacity: 1;
   }
@@ -263,9 +340,11 @@ input, textarea {
   0% {
     background-position: 0% 50%;
   }
+
   50% {
     background-position: 100% 50%;
   }
+
   100% {
     background-position: 0% 50%;
   }
@@ -303,7 +382,7 @@ input, textarea {
 
 /* Chess piece text shadow for better visibility */
 .piece-white {
-  text-shadow: 
+  text-shadow:
     1px 1px 2px rgba(0, 0, 0, 0.8),
     -1px -1px 2px rgba(0, 0, 0, 0.8),
     1px -1px 2px rgba(0, 0, 0, 0.8),
@@ -383,7 +462,7 @@ input, textarea {
   content: '';
   position: absolute;
   inset: 0;
-  background: 
+  background:
     radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.8) 0%, transparent 3%),
     radial-gradient(circle at 80% 30%, rgba(255, 255, 255, 0.6) 0%, transparent 2%),
     radial-gradient(circle at 40% 70%, rgba(255, 255, 255, 0.7) 0%, transparent 2%),
@@ -433,7 +512,7 @@ input, textarea {
   content: '';
   position: absolute;
   inset: 0;
-  background: 
+  background:
     linear-gradient(45deg, transparent 45%, rgba(255, 255, 255, 0.1) 50%, transparent 55%),
     linear-gradient(-45deg, transparent 45%, rgba(255, 255, 255, 0.1) 50%, transparent 55%);
   background-size: 20px 20px;
@@ -458,14 +537,12 @@ input, textarea {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    110deg,
-    transparent 20%,
-    rgba(255, 255, 255, 0.4) 35%,
-    rgba(255, 255, 255, 0.6) 40%,
-    rgba(255, 255, 255, 0.4) 45%,
-    transparent 60%
-  );
+  background: linear-gradient(110deg,
+      transparent 20%,
+      rgba(255, 255, 255, 0.4) 35%,
+      rgba(255, 255, 255, 0.6) 40%,
+      rgba(255, 255, 255, 0.4) 45%,
+      transparent 60%);
   pointer-events: none;
   animation: metallic-shine 4s ease-in-out infinite;
 }
@@ -487,7 +564,7 @@ input, textarea {
   content: '';
   position: absolute;
   inset: 0;
-  background: 
+  background:
     radial-gradient(circle at 30% 40%, rgba(168, 85, 247, 0.3) 0%, transparent 40%),
     radial-gradient(circle at 70% 60%, rgba(139, 92, 246, 0.25) 0%, transparent 40%);
   pointer-events: none;
@@ -499,26 +576,32 @@ input, textarea {
   content: '';
   position: absolute;
   inset: 0;
-  background: 
+  background:
     linear-gradient(60deg, transparent 40%, rgba(255, 255, 255, 0.05) 45%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.05) 55%, transparent 60%);
   pointer-events: none;
 }
 
 /* Premium Theme Animations */
 @keyframes sparkle {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.5;
   }
+
   50% {
     opacity: 1;
   }
 }
 
 @keyframes pulse-subtle {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.4;
     transform: scale(1);
   }
+
   50% {
     opacity: 0.8;
     transform: scale(1.02);
@@ -529,15 +612,20 @@ input, textarea {
   0% {
     transform: translateX(-100%);
   }
-  50%, 100% {
+
+  50%,
+  100% {
     transform: translateX(200%);
   }
 }
 
 @keyframes obsidian-glow {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.6;
   }
+
   50% {
     opacity: 1;
   }
@@ -555,8 +643,11 @@ input, textarea {
   border-radius: 20px;
   padding: 4px;
   background: linear-gradient(135deg, var(--premium-glow-color, #fbbf24), transparent, var(--premium-glow-color, #fbbf24));
-  -webkit-mask: 
-    linear-gradient(#fff 0 0) content-box, 
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
     linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
   mask-composite: exclude;
@@ -565,9 +656,12 @@ input, textarea {
 }
 
 @keyframes border-glow {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 0.5;
   }
+
   50% {
     opacity: 1;
   }
@@ -581,6 +675,7 @@ input, textarea {
   0% {
     transform: translateX(-100%) translateY(-100%) rotate(45deg);
   }
+
   100% {
     transform: translateX(100%) translateY(100%) rotate(45deg);
   }

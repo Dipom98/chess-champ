@@ -2,11 +2,11 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { GameState, Move, PieceColor } from '@/chess/types';
 import { createInitialGameState, makeMove, getAllLegalMoves, getBestMove } from '@/chess/logic';
-import { 
+import {
   RankName, Wallet, StreakData, SeasonStats, Season,
   TimeControl, AIDifficulty, Gender, Country
 } from '@/systems/types';
-import { 
+import {
   calculateLevelProgress, getRankFromLevel,
   checkLevelUp, getAIDepth, migrateRatingToLevel
 } from '@/systems/progression';
@@ -113,47 +113,47 @@ export const BOARD_THEMES: Record<BoardTheme, BoardThemeConfig> = {
   midnight: { name: 'Midnight', light: 'bg-slate-400', dark: 'bg-slate-800', border: 'border-slate-900' },
   marble: { name: 'Marble', light: 'bg-gray-100', dark: 'bg-gray-500', border: 'border-gray-700' },
   // Premium Themes - Truly Premium with special effects
-  diamond: { 
-    name: '💎 Diamond', 
-    light: 'premium-diamond-light', 
-    dark: 'premium-diamond-dark', 
-    border: 'border-cyan-400', 
+  diamond: {
+    name: '💎 Diamond',
+    light: 'premium-diamond-light',
+    dark: 'premium-diamond-dark',
+    border: 'border-cyan-400',
     isPremium: true,
     glowColor: 'rgba(103, 232, 249, 0.5)',
     pattern: 'diamond'
   },
-  ruby: { 
-    name: '❤️ Ruby', 
-    light: 'premium-ruby-light', 
-    dark: 'premium-ruby-dark', 
-    border: 'border-rose-500', 
+  ruby: {
+    name: '❤️ Ruby',
+    light: 'premium-ruby-light',
+    dark: 'premium-ruby-dark',
+    border: 'border-rose-500',
     isPremium: true,
     glowColor: 'rgba(244, 63, 94, 0.5)',
     pattern: 'ruby'
   },
-  emerald: { 
-    name: '💚 Emerald', 
-    light: 'premium-emerald-light', 
-    dark: 'premium-emerald-dark', 
-    border: 'border-emerald-400', 
+  emerald: {
+    name: '💚 Emerald',
+    light: 'premium-emerald-light',
+    dark: 'premium-emerald-dark',
+    border: 'border-emerald-400',
     isPremium: true,
     glowColor: 'rgba(52, 211, 153, 0.5)',
     pattern: 'emerald'
   },
-  gold: { 
-    name: '🌟 Gold', 
-    light: 'premium-gold-light', 
-    dark: 'premium-gold-dark', 
-    border: 'border-yellow-400', 
+  gold: {
+    name: '🌟 Gold',
+    light: 'premium-gold-light',
+    dark: 'premium-gold-dark',
+    border: 'border-yellow-400',
     isPremium: true,
     glowColor: 'rgba(250, 204, 21, 0.5)',
     pattern: 'gold'
   },
-  obsidian: { 
-    name: '🖤 Obsidian', 
-    light: 'premium-obsidian-light', 
-    dark: 'premium-obsidian-dark', 
-    border: 'border-purple-500', 
+  obsidian: {
+    name: '🖤 Obsidian',
+    light: 'premium-obsidian-light',
+    dark: 'premium-obsidian-dark',
+    border: 'border-purple-500',
     isPremium: true,
     glowColor: 'rgba(168, 85, 247, 0.5)',
     pattern: 'obsidian'
@@ -181,7 +181,7 @@ interface AppState {
   hasSeenWelcome: boolean;
   currentSeason: Season | null;
   dailyReward: DailyRewardState;
-  
+
   // Game
   currentGame: GameState | null;
   gameMode: GameMode | null;
@@ -190,30 +190,30 @@ interface AppState {
   computerDifficulty: AIDifficulty;
   timeControl: TimeControl;
   activeMatch: ActiveMatch | null;
-  
+
   // Friends
   friends: Friend[];
   pendingInvites: string[];
-  
+
   // History
   gameHistory: GameHistory[];
-  
+
   // Settings
   settings: Settings;
-  
+
   // Actions - User
   setHasSeenWelcome: (seen: boolean) => void;
   updateUser: (updates: Partial<UserProfile>) => void;
   updateProfile: (name: string, email: string, gender: Gender, country: Country, avatar: string) => void;
   migrateFromOldRating: (oldRating: number) => void;
-  
+
   // Actions - Economy
   claimGift: () => { success: boolean; amount: number; reason?: string };
   canAffordMatch: (difficulty: AIDifficulty) => boolean;
   claimDailyReward: () => { success: boolean; amount: number; streak: number; reason?: string };
   canClaimDailyReward: () => boolean;
   addTransaction: (amount: number, type: TransactionType, description: string) => void;
-  
+
   // Actions - Game
   startPveGame: (mode: GameMode, difficulty: AIDifficulty, timeControl: TimeControl, playerColor: PieceColor) => boolean;
   startPvpGame: (mode: GameMode, timeControl: TimeControl, stakeAmount: number, opponentId: string) => boolean;
@@ -221,15 +221,15 @@ interface AppState {
   makeComputerMove: () => Promise<void>;
   resetGame: () => void;
   endGame: (result: 'win' | 'loss' | 'draw') => void;
-  
+
   // Actions - Friends
   addFriend: (friend: Friend) => void;
   removeFriend: (id: string) => void;
   sendInvite: (friendId: string) => void;
-  
+
   // Actions - Settings
   updateSettings: (updates: Partial<Settings>) => void;
-  
+
   // Actions - Season
   checkSeasonTransition: () => void;
 }
@@ -237,7 +237,7 @@ interface AppState {
 const createDefaultUser = (): UserProfile => {
   const levelProgress = calculateLevelProgress(0);
   const gender: Gender = 'prefer_not_to_say';
-  
+
   return {
     id: crypto.randomUUID(),
     name: 'Player',
@@ -283,19 +283,9 @@ const defaultSettings: Settings = {
   premiumExpiry: null,
 };
 
-const createDefaultFriends = (): Friend[] => [
-  { id: '1', name: 'Magnus', avatar: '🧙‍♂️', online: true, level: 85, rank: 'Grandmaster', country: { code: 'NO', name: 'Norway', flag: '🇳🇴' } },
-  { id: '2', name: 'Hikaru', avatar: '⚡', online: true, level: 78, rank: 'Master', country: { code: 'US', name: 'United States', flag: '🇺🇸' } },
-  { id: '3', name: 'Anna', avatar: '👸', online: false, lastSeen: '2h ago', level: 45, rank: 'Squire', country: { code: 'UA', name: 'Ukraine', flag: '🇺🇦' } },
-  { id: '4', name: 'Bobby', avatar: '🎩', online: false, lastSeen: '1d ago', level: 62, rank: 'Elite', country: { code: 'US', name: 'United States', flag: '🇺🇸' } },
-  { id: '5', name: 'Garry', avatar: '🏆', online: true, level: 71, rank: 'Master', country: { code: 'RU', name: 'Russia', flag: '🇷🇺' } },
-];
+const createDefaultFriends = (): Friend[] => [];
 
-const defaultHistory: GameHistory[] = [
-  { id: '1', opponent: 'Magnus', opponentAvatar: '🧙‍♂️', result: 'loss', mode: 'rapid', date: '2024-01-15', moves: 42, duration: '15:30', coinsWon: 0, xpEarned: 10, timeControl: 'rapid' },
-  { id: '2', opponent: 'Computer (Easy)', opponentAvatar: '🤖', result: 'win', mode: 'classic', date: '2024-01-14', moves: 28, duration: '8:45', coinsWon: 18, xpEarned: 25, timeControl: 'unlimited', difficulty: 'beginner' },
-  { id: '3', opponent: 'Hikaru', opponentAvatar: '⚡', result: 'draw', mode: 'blitz', date: '2024-01-13', moves: 65, duration: '5:00', coinsWon: 45, xpEarned: 50, timeControl: 'blitz' },
-];
+const defaultHistory: GameHistory[] = [];
 
 export const useGameStore = create<AppState>()(
   persist(
@@ -321,9 +311,9 @@ export const useGameStore = create<AppState>()(
       settings: defaultSettings,
 
       setHasSeenWelcome: (seen) => set({ hasSeenWelcome: seen }),
-      
-      updateUser: (updates) => set((state) => ({ 
-        user: { ...state.user, ...updates } 
+
+      updateUser: (updates) => set((state) => ({
+        user: { ...state.user, ...updates }
       })),
 
       updateProfile: (name, email, gender, country, avatar) => set((state) => ({
@@ -341,7 +331,7 @@ export const useGameStore = create<AppState>()(
         const newLevel = migrateRatingToLevel(oldRating);
         const levelProgress = calculateLevelProgress(state.user.totalPveWins);
         const newRank = getRankFromLevel(newLevel);
-        
+
         return {
           user: {
             ...state.user,
@@ -359,11 +349,11 @@ export const useGameStore = create<AppState>()(
           state.user.giftClaimsToday,
           state.user.lastGiftClaimTime
         );
-        
+
         if (!result.canClaim) {
           return { success: false, amount: 0, reason: result.reason };
         }
-        
+
         set((state) => ({
           user: {
             ...state.user,
@@ -378,7 +368,7 @@ export const useGameStore = create<AppState>()(
             lastGiftClaimTime: Date.now(),
           }
         }));
-        
+
         return { success: true, amount: result.amount };
       },
 
@@ -398,27 +388,27 @@ export const useGameStore = create<AppState>()(
         const state = get();
         const today = new Date().toDateString();
         const yesterday = new Date(Date.now() - 86400000).toDateString();
-        
+
         // Check if already claimed today
         if (state.dailyReward.lastClaimDate === today) {
           return { success: false, amount: 0, streak: state.dailyReward.currentStreak, reason: 'Already claimed today!' };
         }
-        
+
         // Calculate streak
         let newStreak = 1;
         if (state.dailyReward.lastClaimDate === yesterday) {
           newStreak = Math.min(state.dailyReward.currentStreak + 1, 7);
         }
-        
+
         // Calculate reward based on streak (100 base + 50 per streak day, max 7)
         const baseReward = 100;
         const streakBonus = (newStreak - 1) * 50;
         const amount = baseReward + streakBonus;
-        
+
         // Update wallet balance directly
         const currentWallet = state.user.wallet;
         const newBalance = currentWallet.balance + amount;
-        
+
         const transaction = {
           id: crypto.randomUUID(),
           type: 'daily_bonus' as const,
@@ -427,7 +417,7 @@ export const useGameStore = create<AppState>()(
           timestamp: Date.now(),
           description: `Daily reward (Day ${newStreak}): +${amount} coins`
         };
-        
+
         set({
           dailyReward: {
             lastClaimDate: today,
@@ -444,26 +434,26 @@ export const useGameStore = create<AppState>()(
             },
           }
         });
-        
+
         return { success: true, amount, streak: newStreak };
       },
 
       startPveGame: (mode, difficulty, timeControl, playerColor) => {
         const state = get();
         const betAmount = getPveEntryCost(difficulty, state.user.level);
-        
+
         // Check if can afford
         if (!canAffordBet(state.user.wallet, betAmount)) {
           return false;
         }
-        
+
         // Lock funds
         const lockedWallet = lockFunds(state.user.wallet, betAmount);
         if (!lockedWallet) return false;
-        
+
         const gameState = createInitialGameState();
         const computerColor = playerColor === 'white' ? 'black' : 'white';
-        
+
         set({
           currentGame: gameState,
           gameMode: mode,
@@ -483,26 +473,26 @@ export const useGameStore = create<AppState>()(
             wallet: lockedWallet,
           }
         });
-        
+
         return true;
       },
 
       startPvpGame: (mode, timeControl, stakeAmount, opponentId) => {
         const state = get();
-        
+
         // For local games (no stake), skip wallet check
         if (stakeAmount > 0) {
           // Check if can afford
           if (!canAffordBet(state.user.wallet, stakeAmount)) {
             return false;
           }
-          
+
           // Lock funds
           const lockedWallet = lockFunds(state.user.wallet, stakeAmount);
           if (!lockedWallet) return false;
-          
+
           const gameState = createInitialGameState();
-          
+
           set({
             currentGame: gameState,
             gameMode: mode,
@@ -524,7 +514,7 @@ export const useGameStore = create<AppState>()(
         } else {
           // Local two-player game with no stake
           const gameState = createInitialGameState();
-          
+
           set({
             currentGame: gameState,
             gameMode: mode,
@@ -540,7 +530,7 @@ export const useGameStore = create<AppState>()(
             },
           });
         }
-        
+
         return true;
       },
 
@@ -553,13 +543,13 @@ export const useGameStore = create<AppState>()(
       makeComputerMove: async () => {
         const state = get();
         if (!state.currentGame) return;
-        
+
         const moves = getAllLegalMoves(state.currentGame);
         if (moves.length === 0) return;
 
         // Faster delay for better UX (200ms instead of 500ms)
         await new Promise(resolve => setTimeout(resolve, 200));
-        
+
         const depth = getAIDepth(state.user.level, state.computerDifficulty);
         const bestMove = getBestMove(state.currentGame, depth);
         if (bestMove) {
@@ -578,23 +568,23 @@ export const useGameStore = create<AppState>()(
 
       endGame: (result) => set((state) => {
         const { activeMatch, user, currentSeason } = state;
-        
+
         if (!activeMatch) {
           return state;
         }
-        
+
         let updatedWallet = { ...user.wallet };
         let coinsWon = 0;
         let xpEarned = 0;
         let winsEarned = 0;
         const betAmount = activeMatch.betAmount;
-        
+
         // First, unlock the locked funds (they were locked when game started)
         updatedWallet = {
           ...updatedWallet,
           lockedBalance: Math.max(0, updatedWallet.lockedBalance - betAmount),
         };
-        
+
         // Calculate match result
         if (activeMatch.type === 'pve' && activeMatch.difficulty) {
           const pveResult = calculatePveMatchResult(
@@ -607,19 +597,19 @@ export const useGameStore = create<AppState>()(
             user.streaks,
             user.beginnerWins
           );
-          
+
           coinsWon = pveResult.payout;
           xpEarned = pveResult.xpEarned;
           winsEarned = pveResult.winsEarned;
-          
+
           // Calculate net result (payout - bet = profit/loss)
           // Win: Get payout (180% of bet), so profit = payout - bet
           // Loss: Get 0, so loss = -bet (but bet was already deducted when locked)
           // Draw: Get bet back
-          
+
           let netChange = 0;
           let description = '';
-          
+
           if (result === 'win') {
             netChange = coinsWon; // Full payout including original bet
             description = `PvE Win: +${coinsWon} coins (180% of ${betAmount})`;
@@ -630,7 +620,7 @@ export const useGameStore = create<AppState>()(
             netChange = betAmount; // Draw - return bet
             description = `PvE Draw: ${betAmount} coins returned`;
           }
-          
+
           // Add the net change to wallet
           const newBalance = updatedWallet.balance + netChange;
           const transaction = {
@@ -641,7 +631,7 @@ export const useGameStore = create<AppState>()(
             timestamp: Date.now(),
             description,
           };
-          
+
           updatedWallet = {
             ...updatedWallet,
             balance: newBalance,
@@ -649,7 +639,7 @@ export const useGameStore = create<AppState>()(
             totalSpent: result === 'loss' ? updatedWallet.totalSpent + betAmount : updatedWallet.totalSpent,
             transactions: [transaction, ...updatedWallet.transactions].slice(0, 100),
           };
-          
+
         } else if (activeMatch.type === 'pvp' && betAmount > 0) {
           const pvpResult = calculatePvpMatchResult(
             crypto.randomUUID(),
@@ -659,13 +649,13 @@ export const useGameStore = create<AppState>()(
             user.level,
             user.streaks
           );
-          
+
           coinsWon = pvpResult.payout;
           xpEarned = pvpResult.xpEarned;
-          
+
           let netChange = 0;
           let description = '';
-          
+
           if (result === 'win') {
             netChange = coinsWon;
             description = `PvP Win: +${coinsWon} coins`;
@@ -676,11 +666,11 @@ export const useGameStore = create<AppState>()(
             netChange = pvpResult.payout;
             description = `PvP Draw: ${netChange} coins refunded (90%)`;
           }
-          
+
           const newBalance = updatedWallet.balance + netChange;
-          const transactionType = (result === 'win' ? 'pvp_win' : 
-                                  result === 'draw' ? 'pvp_draw_refund' : 'pvp_loss') as TransactionType;
-          
+          const transactionType = (result === 'win' ? 'pvp_win' :
+            result === 'draw' ? 'pvp_draw_refund' : 'pvp_loss') as TransactionType;
+
           const transaction = {
             id: crypto.randomUUID(),
             type: transactionType,
@@ -689,7 +679,7 @@ export const useGameStore = create<AppState>()(
             timestamp: Date.now(),
             description,
           };
-          
+
           updatedWallet = {
             ...updatedWallet,
             balance: newBalance,
@@ -698,15 +688,15 @@ export const useGameStore = create<AppState>()(
             transactions: [transaction, ...updatedWallet.transactions].slice(0, 100),
           };
         }
-        
+
         // Update streaks
         const updatedStreaks = updateStreakData(user.streaks, result);
-        
+
         // Update level progress
         const newTotalPveWins = user.totalPveWins + winsEarned;
         const levelProgress = calculateLevelProgress(newTotalPveWins);
         const levelUp = checkLevelUp(user.totalPveWins, newTotalPveWins);
-        
+
         // Level up reward
         if (levelUp.leveledUp) {
           for (let lvl = levelUp.oldLevel + 1; lvl <= levelUp.newLevel; lvl++) {
@@ -720,7 +710,7 @@ export const useGameStore = create<AppState>()(
             );
           }
         }
-        
+
         // Update season stats
         let updatedSeasonStats = user.currentSeasonStats;
         if (currentSeason && updatedSeasonStats) {
@@ -741,15 +731,15 @@ export const useGameStore = create<AppState>()(
             updatedStreaks.currentWinStreak
           );
         }
-        
+
         // Create history entry
-        const difficultyName = activeMatch.difficulty ? 
+        const difficultyName = activeMatch.difficulty ?
           activeMatch.difficulty.charAt(0).toUpperCase() + activeMatch.difficulty.slice(1) : '';
-        
+
         const newHistory: GameHistory = {
           id: Date.now().toString(),
-          opponent: activeMatch.type === 'pve' ? 
-            `Computer (${difficultyName})` : 
+          opponent: activeMatch.type === 'pve' ?
+            `Computer (${difficultyName})` :
             state.friends.find(f => f.id === activeMatch.opponentId)?.name || 'Player 2',
           opponentAvatar: activeMatch.type === 'pve' ? '🤖' : '👤',
           result,
@@ -779,7 +769,7 @@ export const useGameStore = create<AppState>()(
             wins: user.wins + (result === 'win' ? 1 : 0),
             losses: user.losses + (result === 'loss' ? 1 : 0),
             draws: user.draws + (result === 'draw' ? 1 : 0),
-            beginnerWins: activeMatch.difficulty === 'beginner' && result === 'win' ? 
+            beginnerWins: activeMatch.difficulty === 'beginner' && result === 'win' ?
               user.beginnerWins + 1 : user.beginnerWins,
           },
           currentGame: null,
@@ -808,10 +798,10 @@ export const useGameStore = create<AppState>()(
         const state = get();
         if (state.currentSeason && isSeasonEnded(state.currentSeason)) {
           const { newSeason } = transitionSeason(state.currentSeason);
-          
+
           // Archive current stats and create new ones
           const newSeasonStats = createSeasonStats(newSeason, state.user.id);
-          
+
           set({
             currentSeason: newSeason,
             user: {
@@ -826,7 +816,7 @@ export const useGameStore = create<AppState>()(
         set((state) => {
           const currentWallet = state.user.wallet;
           const newBalance = currentWallet.balance + amount;
-          
+
           const transaction = {
             id: crypto.randomUUID(),
             type,
@@ -835,7 +825,7 @@ export const useGameStore = create<AppState>()(
             timestamp: Date.now(),
             description,
           };
-          
+
           return {
             user: {
               ...state.user,

@@ -7,6 +7,7 @@ import {
   Check, X, Mail, Globe, User, Trash2, Star, Lock,
   Camera, Image, FileText, Shield, Headphones
 } from 'lucide-react';
+import { NativePurchases } from '@capgo/native-purchases';
 import { MobileLayout } from '@/components/MobileLayout';
 import { useGameStore, BOARD_THEMES } from '@/store/gameStore';
 import { cn } from '@/utils/cn';
@@ -101,11 +102,33 @@ export function SettingsScreen() {
     updateSettings({ boardTheme: themeId as BoardTheme });
   };
 
-  const handleSubscribe = () => {
-    // Simulate subscription - in real app this would integrate with payment
-    const expiryDate = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 days
-    updateSettings({ isPremium: true, premiumExpiry: expiryDate });
-    setShowSubscription(false);
+  const handleSubscribe = async () => {
+    try {
+      // Initiate native purchase
+      await NativePurchases.purchaseProduct({
+        productIdentifier: 'chess_champ_premium',
+        productType: 'subs'
+      });
+
+      // Simulate local success - in production you'd verify the receipt/entitlement
+      const expiryDate = Date.now() + 30 * 24 * 60 * 60 * 1000;
+      updateSettings({ isPremium: true, premiumExpiry: expiryDate });
+      setShowSubscription(false);
+    } catch (e) {
+      console.error('Purchase failed', e);
+      alert('Subscription failed. If you already paid, try "Restore Purchases".');
+    }
+  };
+
+  const handleRestorePurchases = async () => {
+    try {
+      const info = await NativePurchases.getCustomerInfo();
+      // Logic would go here to check if 'premium' is in active entitlements
+      alert('Purchases restored (simulated). Check your Play Store account if nothing changed.');
+    } catch (e) {
+      console.error('Restore failed', e);
+      alert('Failed to restore purchases.');
+    }
   };
 
   // Apply dark mode effect
@@ -974,8 +997,16 @@ export function SettingsScreen() {
 
                     <motion.button
                       whileTap={{ scale: 0.98 }}
+                      onClick={handleRestorePurchases}
+                      className="w-full py-2 text-amber-400 text-sm font-medium hover:text-amber-300"
+                    >
+                      Already a member? Restore Purchases
+                    </motion.button>
+
+                    <motion.button
+                      whileTap={{ scale: 0.98 }}
                       onClick={() => setShowSubscription(false)}
-                      className="w-full py-3 text-white/50 font-medium"
+                      className="w-full py-2 text-white/50 font-medium text-sm"
                     >
                       Maybe Later
                     </motion.button>
