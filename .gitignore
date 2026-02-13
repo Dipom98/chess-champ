@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+.npm
+.eslintcache
+
+# Build outputs
+dist/
+android/app/build/
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Capacitor
+capacitor.config.json.bak
+android/capacitor-cordova-android-plugins/
+android/app/src/main/res/xml/config.xml
