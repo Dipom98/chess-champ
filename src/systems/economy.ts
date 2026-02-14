@@ -377,6 +377,7 @@ export function calculatePvpMatchResult(
   let payout = 0;
   let burnAmount = 0;
   let xpEarned = 0;
+  let winsEarned = 0;
 
   const baseXp = 100;
 
@@ -384,6 +385,7 @@ export function calculatePvpMatchResult(
     payout = getPvpWinPayout(totalPot);
     burnAmount = getPvpBurnAmount(totalPot);
     xpEarned = baseXp;
+    winsEarned = 1;
 
     // Apply streak bonus to XP only (not coins for PvP)
     const streakBonus = calculateStreakBonus(streakData);
@@ -416,6 +418,7 @@ export function calculatePvpMatchResult(
     payout,
     burnAmount,
     xpEarned,
+    winsEarned,
   };
 }
 

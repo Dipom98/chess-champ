@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronLeft, Zap, Trophy, Lock, Check,
-  Lightbulb, Star, Gift, Target, Flame, X, RotateCcw
+  Lightbulb, Star, Gift, Target, Flame, X, RotateCcw, Crown
 } from 'lucide-react';
 import { MobileLayout } from '@/components/MobileLayout';
 import { useGameStore } from '../store/gameStore';
@@ -12,8 +12,10 @@ import {
   getDailyPuzzle,
   getPuzzlesByType,
   getPuzzleRushPuzzles,
-  puzzleSets,
-  mateIn1Puzzles,
+  getAllPuzzles,
+  getPuzzlesFromSet,
+  puzzleSets, // Kept this as it was in the original and not explicitly removed
+  mateIn1Puzzles, // Kept this as it was in the original and not explicitly removed
   mateIn2Puzzles,
   mateIn3Puzzles,
   mateIn4Puzzles
@@ -304,7 +306,7 @@ export const PuzzlesScreen: React.FC = () => {
   };
 
   const startPuzzleRush = (difficulty: 'easy' | 'medium' | 'hard') => {
-    const puzzles = getPuzzleRushPuzzles(difficulty, 20);
+    const puzzles = getPuzzleRushPuzzles(difficulty, user.solvedPuzzles, 20);
     setRushState({
       puzzles,
       currentIndex: 0,
@@ -397,17 +399,19 @@ export const PuzzlesScreen: React.FC = () => {
             addTransaction(50, 'puzzle_reward', 'Daily Puzzle Completed');
           } else if (mode === 'rush') {
             const nextIndex = rushState.currentIndex + 1;
+            const score = rushState.score + 1;
+
+            setRushState(prev => ({
+              ...prev,
+              currentIndex: nextIndex,
+              score: score
+            }));
+
             if (nextIndex < rushState.puzzles.length) {
               setTimeout(() => {
-                setRushState(prev => ({
-                  ...prev,
-                  currentIndex: nextIndex,
-                  score: prev.score + 1
-                }));
                 initializePuzzle(rushState.puzzles[nextIndex], true);
               }, 1000);
             } else {
-              setRushState(prev => ({ ...prev, score: prev.score + 1 }));
               setTimeout(endPuzzleRush, 1000);
             }
           } else {
@@ -1015,7 +1019,7 @@ export const PuzzlesScreen: React.FC = () => {
     if (!set) return null;
 
     // Get puzzles belonging to this set
-    const puzzles = getPuzzlesByType(set.id as any, user.level);
+    const setPuzzles = getPuzzlesFromSet(set.puzzles);
 
     return (
       <div className="space-y-4">
@@ -1037,49 +1041,107 @@ export const PuzzlesScreen: React.FC = () => {
           </motion.button>
         </div>
 
-        <div className="space-y-2">
-          {puzzles.available.map((puzzle, index) => (
-            <motion.button
-              key={puzzle.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.05 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => {
-                setMode('playing');
-                initializePuzzle(puzzle);
-              }}
-              className="w-full glass rounded-xl p-4 flex items-center gap-4 border border-white/10"
-            >
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-2xl">
-                {puzzle.type === 'endgame' ? '♟️' : '🧩'}
-              </div>
-              <div className="flex-1 text-left">
-                <h4 className="font-medium text-white">{puzzle.title}</h4>
-                <p className="text-xs text-white/50">{puzzle.difficulty} • {puzzle.solution.length} moves</p>
-              </div>
-              <div className="text-right">
-                <div className="text-amber-400 font-bold">{puzzle.rating}</div>
-              </div>
-            </motion.button>
-          ))}
+        {/* Reward Claim Banner */}
+        {(() => {
+          const allSolved = setPuzzles.every(p => user.solvedPuzzles.includes(p.id));
+          const isClaimed = user.unlockedItems?.includes(`puzzle_set_reward_${set.id}`);
 
-          {puzzles.locked.map((puzzle) => (
-            <div
-              key={puzzle.id}
-              className="w-full glass rounded-xl p-4 opacity-50 flex items-center gap-4 border border-white/5"
-            >
-              <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center">
-                <Lock size={18} className="text-white/30" />
-              </div>
-              <div className="flex-1 text-left">
-                <h4 className="font-medium text-white/70">{puzzle.title}</h4>
-                <p className="text-xs text-white/30">Unlock at Level {puzzle.requiredLevel}</p>
-              </div>
-            </div>
-          ))}
+          if (allSolved && !isClaimed) {
+            return (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-4 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 rounded-2xl flex items-center justify-between mb-6"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                    <Crown size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-white font-bold text-sm">Set Complete!</h3>
+                    <p className="text-emerald-400 text-[10px] font-medium">Claim your {set.reward} coins reward</p>
+                  </div>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    useGameStore.getState().claimPuzzleSetReward(set.id, set.reward);
+                    alert(`Claimed ${set.reward} coins!`);
+                  }}
+                  className="px-4 py-2 bg-emerald-500 rounded-xl text-white text-xs font-bold shadow-lg shadow-emerald-500/20"
+                >
+                  Claim Reward
+                </motion.button>
+              </motion.div>
+            );
+          }
+          return null;
+        })()}
+
+        <div className="space-y-2">
+          {setPuzzles.map((puzzle, index) => {
+            const isSolved = user.solvedPuzzles.includes(puzzle.id);
+            return (
+              <motion.button
+                key={puzzle.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.05 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  setMode('playing');
+                  initializePuzzle(puzzle);
+                }}
+                className="w-full glass rounded-xl p-4 flex items-center gap-4 border border-white/10"
+              >
+                <div className={cn(
+                  "w-12 h-12 rounded-xl flex items-center justify-center text-2xl relative shadow-lg",
+                  isSolved ? "bg-emerald-500 shadow-emerald-500/20" : "bg-gradient-to-br from-indigo-500 to-purple-600"
+                )}>
+                  {isSolved && (
+                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-md">
+                      <Check size={12} className="text-emerald-500 font-bold" />
+                    </div>
+                  )}
+                  {puzzle.type === 'endgame' ? '♟️' : '🧩'}
+                </div>
+                <div className="flex-1 text-left">
+                  <h4 className="font-medium text-white flex items-center gap-2">
+                    {puzzle.title}
+                    {isSolved && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded uppercase tracking-wider">Solved</span>}
+                  </h4>
+                  <p className="text-xs text-white/50">{puzzle.difficulty} • {puzzle.solution.length} moves</p>
+                </div>
+                <div className="text-right">
+                  <div className={cn("font-bold text-sm", isSolved ? "text-white/30" : "text-amber-400")}>
+                    {isSolved ? '✓' : puzzle.rating}
+                  </div>
+                </div>
+              </motion.button>
+            );
+          })}
         </div>
+
+        {/* Claim Set Reward Button */}
+        {setPuzzles.every(p => user.solvedPuzzles.includes(p.id)) && (
+          <motion.button
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              addTransaction(set.reward, 'puzzle_reward', `Set Completed: ${set.name}`);
+              setSelectedSet(null);
+              setMode('menu');
+            }}
+            className="w-full mt-6 py-4 bg-gradient-to-r from-amber-400 to-orange-500 rounded-xl text-white font-bold shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2"
+          >
+            <Gift size={20} />
+            Claim Set Reward (+{set.reward} 🪙)
+          </motion.button>
+        )}
       </div>
     );
   };

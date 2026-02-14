@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { App as CapacitorApp } from '@capacitor/app';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,6 +15,8 @@ import { InstructionsScreen } from '@/pages/InstructionsScreen';
 import { PuzzlesScreen } from '@/screens/PuzzlesScreen';
 import { RankedScreen } from '@/pages/RankedScreen';
 import { WalletScreen } from '@/pages/WalletScreen';
+import { SplashScreen } from '@/components/SplashScreen';
+import { UnlockModal } from '@/components/UnlockModal';
 
 function AppRoutes() {
   const { hasSeenWelcome } = useGameStore();
@@ -45,20 +47,48 @@ function AppRoutes() {
   );
 }
 
+import { audioManager } from '@/systems/audio';
+
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
   const [showExitModal, setShowExitModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const locationRef = useRef(location.pathname);
+  const isInitialized = useRef(false);
 
   useEffect(() => {
-    CapacitorApp.addListener('backButton', ({ canGoBack }: { canGoBack: boolean }) => {
-      // If modal is open, close it
+    // Initial check for background music
+    const settings = useGameStore.getState().settings;
+    if (settings.backgroundMusicEnabled) {
+      audioManager.playBackground();
+    }
+
+    // Subscribe to changes
+    const unsub = useGameStore.subscribe((state, prevState) => {
+      if (state.settings.backgroundMusicEnabled !== prevState.settings.backgroundMusicEnabled) {
+        audioManager.toggleBackground(state.settings.backgroundMusicEnabled);
+      }
+    });
+
+    return () => {
+      unsub();
+      audioManager.stopBackground();
+    }
+  }, []);
+
+  useEffect(() => {
+    locationRef.current = location.pathname;
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const backButtonHandler = CapacitorApp.addListener('backButton', ({ canGoBack }: { canGoBack: boolean }) => {
       if (showExitModal) {
         setShowExitModal(false);
         return;
       }
 
-      const path = location.pathname;
+      const path = locationRef.current;
       const isExitRoot = path === '/home' || path === '/' || path === '/welcome';
 
       if (isExitRoot) {
@@ -72,31 +102,59 @@ function AppContent() {
       }
     });
 
-    const initNotifications = async () => {
-      const { supabase } = await import('@/systems/supabase');
-      const { data: { user } } = await supabase.auth.getUser();
-      const { initializeNotifications } = await import('@/systems/notifications');
+    // Handle App Lifecycle (Background/Foreground)
+    const appStateChangeHandler = CapacitorApp.addListener('appStateChange', ({ isActive }) => {
+      if (!isActive) {
+        // App went to background
+        audioManager.pauseBackground();
+      } else {
+        // App returned to foreground
+        // We use resumeBackground which checks if it should be playing based on settings
+        audioManager.resumeBackground();
+      }
+    });
 
-      // Initialize even for local users so they see the permission popup
-      await initializeNotifications(user?.id || 'local-user');
+    const runInitialization = async () => {
+      if (isInitialized.current) return;
+      isInitialized.current = true;
 
-      if (user) {
-        const { initializeRealtime } = await import('@/systems/realtime');
-        initializeRealtime(user.id);
+      try {
+        const { supabase } = await import('@/systems/supabase');
+        const { data: { user } } = await supabase.auth.getUser();
+        const { initializeNotifications } = await import('@/systems/notifications');
+
+        await initializeNotifications(user?.id || 'local-user');
+
+        if (user) {
+          const { initializeRealtime } = await import('@/systems/realtime');
+          initializeRealtime(user.id);
+        }
+      } catch (err) {
+        console.error('[App] Initialization error:', err);
+      } finally {
+        // Ensure splash screen shows for at least 3 seconds for brand presence
+        setTimeout(() => setIsLoading(false), 3000);
       }
     };
 
-    initNotifications();
+    runInitialization();
 
     return () => {
-      CapacitorApp.removeAllListeners();
+      backButtonHandler.then(h => h.remove());
+      appStateChangeHandler.then(h => h.remove());
       import('@/systems/realtime').then(m => m.stopRealtime());
     };
-  }, [navigate, location]);
+  }, [navigate, showExitModal]);
 
   return (
-    <div className="max-w-md mx-auto min-h-screen bg-indigo-950 relative overflow-hidden">
-      <AppRoutes />
+    <div className="max-w-md mx-auto min-h-screen animate-gradient-bg relative overflow-hidden">
+      <AnimatePresence mode="wait">
+        {isLoading ? (
+          <SplashScreen key="global-splash" onComplete={() => setIsLoading(false)} />
+        ) : (
+          <AppRoutes key="app-routes" />
+        )}
+      </AnimatePresence>
 
       {/* Exit Confirmation Modal */}
       <AnimatePresence>
@@ -142,6 +200,8 @@ function AppContent() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <UnlockModal />
     </div>
   );
 }

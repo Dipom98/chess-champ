@@ -1,0 +1,8 @@
+Royalty Free Music License
+--------------------------
+Tracks provided by Developer.
+- bgm_classic.mp3
+- bgm_blitz.mp3
+- bgm_menu.mp3
+
+(Place valid license text here)

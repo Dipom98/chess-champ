@@ -5,16 +5,18 @@ import {
   Bell, Volume2, Smartphone, Eye, Crown,
   Palette, Moon, HelpCircle, ChevronRight,
   Check, X, Mail, Globe, User, Trash2, Star, Lock,
-  Camera, Image, FileText, Shield, Headphones, Users
+  Camera, Image, FileText, Shield, Headphones, Users, Bug, Share2
 } from 'lucide-react';
 import { NativePurchases } from '@capgo/native-purchases';
 import { MobileLayout } from '@/components/MobileLayout';
-import { BoardTheme, useGameStore, BOARD_THEMES } from '@/store/gameStore';
+import { BoardTheme, useGameStore, BOARD_THEMES, PIECE_THEMES, PieceTheme } from '@/store/gameStore';
 import { supabase } from '@/systems/supabase';
 import { cn } from '@/utils/cn';
 import { COUNTRIES, DEFAULT_AVATARS } from '@/systems/countries';
 import { Gender, Country } from '@/systems/types';
 import { RANKS } from '@/systems/progression';
+import { ImageCropper } from '@/components/ImageCropper';
+import { Gamepad2, Music } from 'lucide-react';
 
 export function SettingsScreen() {
   const navigate = useNavigate();
@@ -42,6 +44,9 @@ export function SettingsScreen() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [isUploading, setIsUploading] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [pendingCropImage, setPendingCropImage] = useState<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }: { data: { user: any } }) => {
@@ -60,11 +65,12 @@ export function SettingsScreen() {
 
   const handleAuth = async () => {
     if (!authEmail || !authPassword) {
-      alert('Please enter both email and password');
+      setAuthError('Please enter both email and password');
       return;
     }
 
     setIsAuthLoading(true);
+    setAuthError(null);
     try {
       if (authMode === 'login') {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -100,7 +106,7 @@ export function SettingsScreen() {
       }
       setShowAuthModal(false);
     } catch (error: any) {
-      alert(error.message || 'Authentication failed');
+      setAuthError(error.message || 'Authentication failed');
       console.error('[Auth Error]', error);
     } finally {
       setIsAuthLoading(false);
@@ -124,51 +130,64 @@ export function SettingsScreen() {
     setIsUploading(true);
     try {
       const reader = new FileReader();
-      reader.onloadend = async () => {
+      reader.onloadend = () => {
         const base64String = reader.result as string;
-
-        // Always set local preview first
-        setEditProfilePicture(base64String);
-
-        // If logged in, attempt to upload to Supabase Storage
-        if (supabaseUser) {
-          try {
-            const fileName = `${supabaseUser.id}-${Date.now()}.png`;
-            const base64Data = base64String.split(',')[1];
-            const byteCharacters = atob(base64Data);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-              byteNumbers[i] = byteCharacters.charCodeAt(i);
-            }
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], { type: 'image/png' });
-
-            // Try to upload to 'avatars' bucket
-            const { data, error } = await supabase.storage
-              .from('avatars')
-              .upload(fileName, blob, {
-                contentType: 'image/png',
-                upsert: true
-              });
-
-            if (error) {
-              console.warn('[Supabase] Storage upload failed, keeping as base64:', error.message);
-            } else {
-              const { data: { publicUrl } } = supabase.storage
-                .from('avatars')
-                .getPublicUrl(data.path);
-
-              setEditProfilePicture(publicUrl);
-              console.log('[Supabase] Image uploaded successfully:', publicUrl);
-            }
-          } catch (uploadErr: any) {
-            console.warn('[Supabase] Upload process failed:', uploadErr.message);
-          }
-        }
+        setPendingCropImage(base64String);
       };
       reader.readAsDataURL(file);
     } catch (err: any) {
-      alert('Failed to process image: ' + err.message);
+      setUploadError('Failed to process image: ' + err.message);
+    }
+  };
+
+  const handleCropComplete = async (croppedBase64: string) => {
+    setPendingCropImage(null);
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      // Always set local preview first
+      setEditProfilePicture(croppedBase64);
+
+      // If logged in, attempt to upload to Supabase Storage
+      if (supabaseUser) {
+        try {
+          const fileName = `${supabaseUser.id}-${Date.now()}.png`;
+          const base64Data = croppedBase64.split(',')[1];
+          const byteCharacters = atob(base64Data);
+          const byteNumbers = new Array(byteCharacters.length);
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i);
+          }
+          const byteArray = new Uint8Array(byteNumbers);
+          const blob = new Blob([byteArray], { type: 'image/png' });
+
+          // Try to upload to 'avatars' bucket
+          const { data, error } = await supabase.storage
+            .from('avatars')
+            .upload(fileName, blob, {
+              contentType: 'image/png',
+              upsert: true
+            });
+
+          if (error) {
+            console.warn('[Supabase] Storage upload failed, keeping as base64:', error.message);
+            setUploadError('Storage upload failed. Image saved locally.');
+          } else {
+            const { data: { publicUrl } } = supabase.storage
+              .from('avatars')
+              .getPublicUrl(data.path);
+
+            setEditProfilePicture(publicUrl);
+            console.log('[Supabase] Image uploaded successfully:', publicUrl);
+          }
+        } catch (uploadErr: any) {
+          console.warn('[Supabase] Upload process failed:', uploadErr.message);
+          setUploadError('Upload process failed. Image saved locally.');
+        }
+      }
+    } catch (err: any) {
+      setUploadError('Failed to process image: ' + err.message);
     } finally {
       setIsUploading(false);
     }
@@ -219,11 +238,38 @@ export function SettingsScreen() {
 
   const handleThemeSelect = (themeId: string) => {
     const theme = BOARD_THEMES[themeId as BoardTheme];
-    if (theme.isPremium && !settings.isPremium) {
-      setShowPremiumThemeAlert(true);
+    const isUnlocked = user.unlockedItems.includes(themeId) || settings.isPremium;
+
+    // Check Lock
+    if (!isUnlocked) {
+      if (theme.requiredRank) {
+        const requiredRankInfo = RANKS[theme.requiredRank];
+        alert(`This theme requires ${theme.requiredRank} rank (Level ${requiredRankInfo.minLevel})`);
+      } else if (theme.isPremium) {
+        setShowPremiumThemeAlert(true);
+      }
       return;
     }
+
     updateSettings({ boardTheme: themeId as BoardTheme });
+  };
+
+  const handlePieceThemeSelect = (themeId: string) => {
+    const theme = PIECE_THEMES[themeId as PieceTheme];
+    const isUnlocked = user.unlockedItems.includes(themeId) || settings.isPremium;
+
+    // Check Lock
+    if (!isUnlocked) {
+      if (theme.requiredRank) {
+        const requiredRankInfo = RANKS[theme.requiredRank];
+        alert(`This theme requires ${theme.requiredRank} rank (Level ${requiredRankInfo.minLevel})`);
+      } else if (theme.isPremium) {
+        setShowPremiumThemeAlert(true);
+      }
+      return;
+    }
+
+    updateSettings({ pieceTheme: themeId as PieceTheme });
   };
 
   const handleSubscribe = async () => {
@@ -269,6 +315,25 @@ export function SettingsScreen() {
     // Navigate to welcome using hash router format and reload
     window.location.hash = '#/welcome';
     window.location.reload();
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: 'Chess Champ',
+      text: 'Check out Chess Champ! Play chess, solve puzzles, and climb the ranks!',
+      url: 'https://play.google.com/store/apps/details?id=com.chesschamp.app'
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(`${shareData.text} ${shareData.url}`);
+        alert('Link copied to clipboard!');
+      }
+    } catch (err) {
+      console.error('Error sharing:', err);
+    }
   };
 
   const rankInfo = RANKS[user.rank];
@@ -476,30 +541,47 @@ export function SettingsScreen() {
 
               {/* Regular Themes */}
               <div className="grid grid-cols-4 gap-3 mb-4">
-                {regularThemes.map((theme) => (
-                  <motion.button
-                    key={theme.id}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleThemeSelect(theme.id)}
-                    className={cn(
-                      'rounded-xl p-2 border-2 transition-all',
-                      settings.boardTheme === theme.id
-                        ? 'border-amber-400 bg-amber-500/10 shadow-lg shadow-amber-500/10'
-                        : 'border-transparent hover:border-white/20'
-                    )}
-                  >
-                    <div className="grid grid-cols-2 gap-0.5 w-full aspect-square rounded-lg overflow-hidden mb-1.5 shadow-md">
-                      <div className={theme.light} />
-                      <div className={theme.dark} />
-                      <div className={theme.dark} />
-                      <div className={theme.light} />
-                    </div>
-                    <p className={cn(
-                      "text-xs text-center font-medium truncate",
-                      settings.boardTheme === theme.id ? 'text-amber-400' : 'text-white/50'
-                    )}>{theme.name}</p>
-                  </motion.button>
-                ))}
+                {regularThemes.map((theme) => {
+                  const isUnlocked = user.unlockedItems.includes(theme.id) || settings.isPremium;
+                  const isLocked = !isUnlocked;
+                  const showRankLock = isLocked && theme.requiredRank;
+
+                  return (
+                    <motion.button
+                      key={theme.id}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleThemeSelect(theme.id)}
+                      className={cn(
+                        'rounded-xl p-2 border-2 transition-all relative',
+                        settings.boardTheme === theme.id
+                          ? 'border-amber-400 bg-amber-500/10 shadow-lg shadow-amber-500/10'
+                          : 'border-transparent hover:border-white/20',
+                        isLocked && 'opacity-60'
+                      )}
+                    >
+                      <div className="grid grid-cols-2 gap-0.5 w-full aspect-square rounded-lg overflow-hidden mb-1.5 shadow-md relative">
+                        <div className={theme.light} />
+                        <div className={theme.dark} />
+                        <div className={theme.dark} />
+                        <div className={theme.light} />
+                        {isLocked && (
+                          <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center">
+                            <Lock size={12} className="text-white/80" />
+                          </div>
+                        )}
+                      </div>
+                      <p className={cn(
+                        "text-[10px] text-center font-medium truncate",
+                        settings.boardTheme === theme.id ? 'text-amber-400' : 'text-white/50'
+                      )}>{theme.name}</p>
+                      {showRankLock && (
+                        <p className="text-[8px] text-center text-white/30 font-bold uppercase tracking-tighter mt-0.5">
+                          {theme.requiredRank}
+                        </p>
+                      )}
+                    </motion.button>
+                  );
+                })}
               </div>
 
               {/* Premium Themes Section */}
@@ -511,43 +593,120 @@ export function SettingsScreen() {
                 </div>
                 <p className="text-white/40 text-xs mb-3">Exclusive themes with special effects & animations</p>
                 <div className="grid grid-cols-5 gap-2">
-                  {premiumThemes.map((theme) => (
+                  {premiumThemes.map((theme) => {
+                    const isUnlocked = user.unlockedItems.includes(theme.id) || settings.isPremium;
+                    const isLocked = !isUnlocked;
+
+                    return (
+                      <motion.button
+                        key={theme.id}
+                        whileTap={{ scale: 0.95 }}
+                        whileHover={{ scale: (isUnlocked) ? 1.05 : 1 }}
+                        onClick={() => handleThemeSelect(theme.id)}
+                        className={cn(
+                          'rounded-xl p-1.5 border-2 transition-all relative',
+                          settings.boardTheme === theme.id && isUnlocked
+                            ? 'border-amber-400 bg-amber-500/10 shadow-lg shadow-amber-500/20'
+                            : 'border-transparent',
+                          isLocked && 'opacity-60'
+                        )}
+                      >
+                        <div className="grid grid-cols-2 gap-0.5 w-full aspect-square rounded-lg overflow-hidden shadow-md relative">
+                          <div className={cn(theme.light, 'relative')} />
+                          <div className={cn(theme.dark, 'relative')} />
+                          <div className={cn(theme.dark, 'relative')} />
+                          <div className={cn(theme.light, 'relative')} />
+                          {isLocked && (
+                            <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center flex-col gap-1">
+                              <Lock size={12} className="text-white/80" />
+                            </div>
+                          )}
+                          {isUnlocked && settings.isPremium && ( // Show shimmer for premium users on premium themes
+                            <div className="absolute inset-0 pointer-events-none">
+                              <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent animate-shimmer" />
+                            </div>
+                          )}
+                        </div>
+                        <p className={cn(
+                          "text-[9px] text-center font-medium mt-1 truncate",
+                          settings.boardTheme === theme.id && isUnlocked ? 'text-amber-400' : 'text-white/40'
+                        )}>{theme.name.replace(/^[^\s]+\s/, '')}</p>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <SettingToggle
+              icon={Moon}
+              label="Dark Mode"
+              description="Use dark theme"
+              value={settings.darkMode}
+              onChange={(v) => updateSettings({ darkMode: v })}
+            />
+          </div>
+        </motion.div>
+
+        {/* Piece Themes */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.17 }}
+        >
+          <div className="glass rounded-2xl px-4 mt-6">
+            <div className="py-4 border-b border-white/5">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-11 h-11 bg-gradient-to-br from-white/10 to-white/5 rounded-xl flex items-center justify-center">
+                  <div className="text-2xl">♟️</div>
+                </div>
+                <p className="text-white font-medium">Piece Style</p>
+              </div>
+
+              <div className="grid grid-cols-4 gap-3 mb-4">
+                {Object.entries(PIECE_THEMES).map(([id, config]) => {
+                  const isUnlocked = user.unlockedItems.includes(id) || settings.isPremium;
+                  const isLocked = !isUnlocked;
+                  const showRankLock = isLocked && config.requiredRank;
+
+                  return (
                     <motion.button
-                      key={theme.id}
+                      key={id}
                       whileTap={{ scale: 0.95 }}
-                      whileHover={{ scale: settings.isPremium ? 1.05 : 1 }}
-                      onClick={() => handleThemeSelect(theme.id)}
+                      onClick={() => handlePieceThemeSelect(id)}
                       className={cn(
-                        'rounded-xl p-1.5 border-2 transition-all relative',
-                        settings.boardTheme === theme.id && settings.isPremium
-                          ? 'border-amber-400 bg-amber-500/10 shadow-lg shadow-amber-500/20'
-                          : 'border-transparent',
-                        !settings.isPremium && 'opacity-70'
+                        'rounded-xl p-2 border-2 transition-all relative',
+                        settings.pieceTheme === id
+                          ? 'border-amber-400 bg-amber-500/10 shadow-lg shadow-amber-500/10'
+                          : 'border-transparent hover:border-white/20',
+                        isLocked && 'opacity-60'
                       )}
                     >
-                      <div className="grid grid-cols-2 gap-0.5 w-full aspect-square rounded-lg overflow-hidden shadow-md relative">
-                        <div className={cn(theme.light, 'relative')} />
-                        <div className={cn(theme.dark, 'relative')} />
-                        <div className={cn(theme.dark, 'relative')} />
-                        <div className={cn(theme.light, 'relative')} />
-                        {!settings.isPremium && (
-                          <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] flex items-center justify-center">
+                      <div className="w-full aspect-square rounded-lg flex items-center justify-center bg-black/20 mb-1.5 relative">
+                        <span className="text-2xl">
+                          {id === 'classic' ? '♞' :
+                            id === 'neo' ? '🐴' :
+                              id === 'alpha' ? 'N' :
+                                '♞'}
+                        </span>
+                        {isLocked && (
+                          <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px] rounded-lg flex items-center justify-center flex-col gap-1">
                             <Lock size={12} className="text-white/80" />
-                          </div>
-                        )}
-                        {settings.isPremium && (
-                          <div className="absolute inset-0 pointer-events-none">
-                            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent animate-shimmer" />
                           </div>
                         )}
                       </div>
                       <p className={cn(
-                        "text-[9px] text-center font-medium mt-1 truncate",
-                        settings.boardTheme === theme.id && settings.isPremium ? 'text-amber-400' : 'text-white/40'
-                      )}>{theme.name.replace(/^[^\s]+\s/, '')}</p>
+                        "text-[10px] text-center font-medium truncate",
+                        settings.pieceTheme === id ? 'text-amber-400' : 'text-white/50'
+                      )}>{config.name}</p>
+                      {showRankLock && (
+                        <p className="text-[8px] text-center text-white/30 font-bold uppercase tracking-tighter mt-0.5">
+                          {config.requiredRank}
+                        </p>
+                      )}
                     </motion.button>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -593,6 +752,41 @@ export function SettingsScreen() {
               onChange={(v) => updateSettings({ vibrationEnabled: v })}
             />
             <SettingToggle
+              icon={Music}
+              label="Background Music"
+              description="Subtle ambient loop"
+              value={settings.backgroundMusicEnabled}
+              onChange={(v) => updateSettings({ backgroundMusicEnabled: v })}
+            />
+
+            {/* Volume Slider */}
+            {settings.backgroundMusicEnabled && (
+              <div className="flex items-center gap-4 py-4 border-b border-white/5 last:border-0 pl-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="w-11 h-11 flex items-center justify-center opacity-50">
+                  <div className="w-0.5 h-4 bg-white/30 rounded-full" />
+                </div>
+                <div className="flex-1 pr-4">
+                  <div className="flex justify-between mb-2">
+                    <span className="text-white/70 text-sm font-medium">Music Volume</span>
+                    <span className="text-amber-400 text-sm font-bold">{Math.round((settings.musicVolume ?? 0.5) * 100)}%</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={settings.musicVolume ?? 0.5}
+                    onChange={(e) => {
+                      const vol = parseFloat(e.target.value);
+                      updateSettings({ musicVolume: vol });
+                      import('@/systems/audio').then(m => m.audioManager.setMusicVolume(vol));
+                    }}
+                    className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-amber-500 hover:accent-amber-400 transition-all"
+                  />
+                </div>
+              </div>
+            )}
+            <SettingToggle
               icon={Users}
               label="Sync Contacts"
               description="Find friends by phone number"
@@ -622,6 +816,28 @@ export function SettingsScreen() {
               onClick={() => setShowSubscription(true)}
               premium
             />
+          </div>
+        </motion.div>
+
+        {/* Games Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.24 }}
+        >
+          <h3 className="text-white/40 text-xs font-medium uppercase tracking-widest mb-3 px-1">
+            More Games
+          </h3>
+          <div className="glass rounded-2xl p-4">
+            <div className="flex items-center gap-4 py-2 opacity-60">
+              <div className="w-11 h-11 bg-gradient-to-br from-white/10 to-white/5 rounded-xl flex items-center justify-center">
+                <Gamepad2 size={20} className="text-white/70" />
+              </div>
+              <div className="flex-1">
+                <p className="text-white font-medium">New Games Coming Soon</p>
+                <p className="text-white/40 text-xs">Stay tuned for more updates!</p>
+              </div>
+            </div>
           </div>
         </motion.div>
 
@@ -707,6 +923,29 @@ export function SettingsScreen() {
             )}
           </div>
         </motion.div>
+        {/* Feedback & Share */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.27 }}
+        >
+          <h3 className="text-white/40 text-xs font-medium uppercase tracking-widest mb-3 px-1">
+            Feedback & Share
+          </h3>
+          <div className="glass rounded-2xl px-4">
+            <SettingLink
+              icon={Bug}
+              label="Report a Bug"
+              onClick={() => window.open('mailto:Support@Dipomdutta.com?subject=Bug Report: Chess Champ')}
+            />
+            <SettingLink
+              icon={Share2}
+              label="Share Game"
+              onClick={handleShare}
+            />
+          </div>
+        </motion.div>
+
 
         {/* Danger Zone */}
         <motion.div
@@ -733,7 +972,7 @@ export function SettingsScreen() {
           transition={{ delay: 0.3 }}
           className="text-center text-white/20 text-xs py-6"
         >
-          Chess Champ v1.0.7 • Made by Dipom Dutta ♟️
+          Chess Champ v1.1.0 • Made by Dipom Dutta ♟️
         </motion.p>
       </div>
 
@@ -1074,7 +1313,7 @@ export function SettingsScreen() {
                   <Lock size={32} className="text-white" />
                 </div>
                 <h2 className="text-2xl font-bold text-white mt-4">Chess Champ</h2>
-                <p className="text-white/60">v1.0.7 • Made by Dipom Dutta</p>
+                <p className="text-white/60">v1.1.0 • Made by Dipom Dutta</p>
                 <p className="text-white/50 mt-2">
                   This theme is exclusive to Premium members. Upgrade to unlock all 5 premium themes!
                 </p>
@@ -1596,6 +1835,17 @@ export function SettingsScreen() {
                 </div>
               </div>
 
+              {authError && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 flex items-center gap-3"
+                >
+                  <X size={16} className="text-red-400 flex-none" />
+                  <p className="text-red-400 text-[10px] font-medium leading-tight">{authError}</p>
+                </motion.div>
+              )}
+
               <div className="space-y-3">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -1624,6 +1874,36 @@ export function SettingsScreen() {
             </motion.div>
           </motion.div>
         )}
+        {/* Notification Alert */}
+        <AnimatePresence>
+          {uploadError && (
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 50 }}
+              className="fixed bottom-24 left-4 right-4 z-50 glass border border-amber-400/30 rounded-2xl p-4 flex items-center gap-4 bg-black/60 backdrop-blur-xl shadow-2xl"
+            >
+              <div className="w-10 h-10 rounded-xl bg-amber-400/20 flex items-center justify-center flex-none">
+                <Bell size={20} className="text-amber-400" />
+              </div>
+              <p className="text-white text-sm font-medium flex-1">{uploadError}</p>
+              <button
+                onClick={() => setUploadError(null)}
+                className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center text-white/40 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </motion.div>
+          )}
+
+          {pendingCropImage && (
+            <ImageCropper
+              image={pendingCropImage}
+              onCrop={handleCropComplete}
+              onCancel={() => setPendingCropImage(null)}
+            />
+          )}
+        </AnimatePresence>
       </AnimatePresence>
     </MobileLayout>
   );

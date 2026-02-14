@@ -10,8 +10,13 @@ export async function initializeNotifications(userId: string) {
         const permStatus = await PushNotifications.requestPermissions();
 
         if (permStatus.receive === 'granted') {
-            // Register for push notifications
-            await PushNotifications.register();
+            // NOTE: We are temporarily disabling automatic registration to prevent crashes 
+            // on devices that do not have a valid 'google-services.json' file.
+            // When you are ready to use push notifications, ensure you have configured 
+            // Firebase and added the google-services.json to /android/app/.
+
+            // await PushNotifications.register();
+            console.warn('[Notifications] Permission granted, but registration skipped to avoid crash (missing google-services.json)');
         }
 
         // On registration success

@@ -11,7 +11,10 @@ export async function syncContacts(userId: string) {
     if (Capacitor.getPlatform() === 'web') return { matchingUsers: [], newContacts: [] };
 
     try {
+        console.log('[Contacts] Requesting permissions...');
         const permission = await Contacts.requestPermissions();
+        console.log('[Contacts] Permission result:', permission);
+
         if (permission.contacts !== 'granted') {
             throw new Error('Contacts permission not granted');
         }

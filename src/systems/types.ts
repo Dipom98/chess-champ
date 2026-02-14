@@ -129,6 +129,7 @@ export interface PvpMatchResult {
   payout: number;
   burnAmount: number;
   xpEarned: number;
+  winsEarned: number;
 }
 
 // ---- STREAKS ----
@@ -226,14 +227,24 @@ export interface UserProfile {
   gender: Gender;
   country: Country;
   avatar: string;
+  customProfilePicture: string | null;
   level: number;
   rank: RankName;
   levelProgress: LevelProgress;
+  totalPveWins: number;
+  currentLevelWins: number;
+  winsRequiredForNextLevel: number;
   wallet: Wallet;
   streaks: StreakData;
   antiCheat: AntiCheatData;
   currentSeasonStats: SeasonStats | null;
   pastSeasons: SeasonStats[];
+  gamesPlayed: number;
+  wins: number;
+  losses: number;
+  draws: number;
+  beginnerWins: number;
+  hasClaimedSignupReward: boolean;
   createdAt: number;
   lastLoginAt: number;
 }

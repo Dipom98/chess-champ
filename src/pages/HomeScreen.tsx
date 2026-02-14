@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Trophy, Target, Users, Gift, ChevronRight, Coins, Sparkles, Crown, Zap, TrendingUp, X, Check, Star } from 'lucide-react';
+import { Play, Trophy, Target, Users, Gift, ChevronRight, Coins, Sparkles, Crown, Zap, TrendingUp, X, Check, Star, HelpCircle } from 'lucide-react';
 import { MobileLayout } from '@/components/MobileLayout';
 import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/utils/cn';
@@ -102,27 +102,38 @@ export function HomeScreen() {
             <p className="text-white/50 text-sm">Welcome back,</p>
             <h1 className="text-2xl font-bold text-white">{user.name} 👋</h1>
           </div>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => navigate('/settings')}
-            className="relative"
-          >
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-red-500 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/30 overflow-hidden">
-              {user.customProfilePicture ? (
-                <img
-                  src={user.customProfilePicture}
-                  alt="Profile"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                user.avatar
-              )}
-            </div>
-            <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-[#0f0a1e] flex items-center justify-center">
-              <Sparkles size={10} className="text-white" />
-            </div>
-          </motion.button>
+          <div className="flex items-center gap-3">
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => navigate('/instructions')}
+              className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/50 hover:bg-white/10 hover:text-white transition-all"
+              title="How to Play"
+            >
+              <HelpCircle size={22} />
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/settings')}
+              className="relative"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-red-500 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/30 overflow-hidden">
+                {user.customProfilePicture ? (
+                  <img
+                    src={user.customProfilePicture}
+                    alt="Profile"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  user.avatar
+                )}
+              </div>
+              <div className="absolute -top-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-[#0f0a1e] flex items-center justify-center">
+                <Sparkles size={10} className="text-white" />
+              </div>
+            </motion.button>
+          </div>
         </motion.div>
 
         {/* Stats Card with Level & Rank */}
@@ -480,9 +491,9 @@ export function HomeScreen() {
               {/* Close button */}
               <button
                 onClick={() => setShowDailyReward(false)}
-                className="absolute top-4 right-4 p-2 text-white/50 hover:text-white transition-colors z-10"
+                className="absolute top-4 right-4 p-2 text-white/50 hover:text-white transition-colors z-[60]"
               >
-                <X size={20} />
+                <X size={24} />
               </button>
 
               <div className="text-center relative z-10">

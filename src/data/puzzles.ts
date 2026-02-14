@@ -320,7 +320,7 @@ export const getDailyPuzzle = (): ChessPuzzle => {
 // Get puzzles by type and level
 export const getPuzzlesByType = (type: ChessPuzzle['type'], userLevel: number): { available: ChessPuzzle[], locked: ChessPuzzle[] } => {
   let puzzles: ChessPuzzle[] = [];
-  
+
   switch (type) {
     case 'mate_in_1':
       puzzles = mateIn1Puzzles;
@@ -341,17 +341,17 @@ export const getPuzzlesByType = (type: ChessPuzzle['type'], userLevel: number): 
       puzzles = endgamePuzzles;
       break;
   }
-  
+
   const available = puzzles.filter(p => p.requiredLevel <= userLevel);
   const locked = puzzles.filter(p => p.requiredLevel > userLevel);
-  
+
   return { available, locked };
 };
 
 // Get all puzzles for Puzzle Rush (random mix)
-export const getPuzzleRushPuzzles = (difficulty: 'easy' | 'medium' | 'hard', count: number = 20): ChessPuzzle[] => {
+export const getPuzzleRushPuzzles = (difficulty: 'easy' | 'medium' | 'hard', solvedIds: string[] = [], count: number = 20): ChessPuzzle[] => {
   let pool: ChessPuzzle[] = [];
-  
+
   switch (difficulty) {
     case 'easy':
       pool = [...mateIn1Puzzles.filter(p => p.difficulty === 'beginner'), ...tacticsPuzzles.filter(p => p.difficulty === 'beginner')];
@@ -363,9 +363,13 @@ export const getPuzzleRushPuzzles = (difficulty: 'easy' | 'medium' | 'hard', cou
       pool = [...mateIn2Puzzles, ...mateIn3Puzzles, ...mateIn4Puzzles, ...endgamePuzzles];
       break;
   }
-  
+
+  // Filter out already solved puzzles
+  const filteredPool = pool.filter(p => !solvedIds.includes(p.id));
+  const finalPool = filteredPool.length > 0 ? filteredPool : pool;
+
   // Shuffle and return
-  const shuffled = pool.sort(() => Math.random() - 0.5);
+  const shuffled = [...finalPool].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, count);
 };
 
@@ -404,6 +408,13 @@ export const puzzleSets = [
     requiredLevel: 10
   }
 ];
+
+export const getPuzzlesFromSet = (puzzleIds: string[]): ChessPuzzle[] => {
+  const all = getAllPuzzles();
+  return puzzleIds
+    .map(id => all.find(p => p.id === id))
+    .filter((p): p is ChessPuzzle => p !== undefined);
+};
 
 export const getAllPuzzles = (): ChessPuzzle[] => {
   return [

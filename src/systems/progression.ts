@@ -249,7 +249,7 @@ export function getAIDepth(playerLevel: number, difficulty: AIDifficulty): numbe
     'intermediate': 3,
     'advanced': 4,
     'expert': 5,
-    'engine': 6,
+    'engine': 5, // Reduced from 6 to prevent deep freezes
   };
 
   const rankInfo = getRankInfo(playerLevel);
@@ -259,7 +259,8 @@ export function getAIDepth(playerLevel: number, difficulty: AIDifficulty): numbe
   if (difficulty === 'advanced' || difficulty === 'expert' || difficulty === 'engine') {
     // Legends and Grandmasters get a significant boost to engine depth
     const bonus = Math.floor(rankInfo.aiDepthBonus / 2);
-    return Math.min(baseDepth + bonus, 8);
+    // Hard cap at 6 to prevent freezing on mobile
+    return Math.min(baseDepth + bonus, 6);
   }
 
   return baseDepth;

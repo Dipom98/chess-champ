@@ -5,7 +5,7 @@ import { GameState, Move, PieceColor } from '@/chess/types';
 import { createInitialGameState, makeMove, getAllLegalMoves, getBestMove } from '@/chess/logic';
 import {
   RankName, Wallet, StreakData, SeasonStats, Season,
-  TimeControl, AIDifficulty, Gender, Country
+  TimeControl, AIDifficulty, Gender, Country, TransactionType
 } from '@/systems/types';
 import {
   calculateLevelProgress, getRankFromLevel,
@@ -16,9 +16,17 @@ import {
   getPveEntryCost, calculatePveMatchResult, calculatePvpMatchResult,
   getLevelUpReward, generateGiftReward, updateStreakData, canAffordBet
 } from '@/systems/economy';
-import { TransactionType } from '@/systems/types';
 import { createSeason, createSeasonStats, updateSeasonStats, isSeasonEnded, transitionSeason } from '@/systems/seasons';
 import { getDefaultCountry, getDefaultAvatar } from '@/systems/countries';
+
+const RANKS: RankName[] = [
+  'Pawn', 'Knight', 'Bishop', 'Rook', 'Squire',
+  'Champion', 'Elite', 'Master', 'Grandmaster', 'Legend'
+];
+
+const getRankValue = (rank: RankName): number => {
+  return RANKS.indexOf(rank) + 1;
+};
 
 export type GameMode = 'classic' | 'rapid' | 'blitz' | 'bullet' | 'puzzle' | 'custom';
 
@@ -92,9 +100,11 @@ export interface UserProfile {
   lastGiftClaimTime: number;
   phoneNumber?: string;
   hasClaimedSignupReward: boolean;
+  solvedPuzzles: string[];
+  unlockedItems: string[];
 }
 
-export type BoardTheme = 'classic' | 'wood' | 'ocean' | 'forest' | 'ice' | 'neon' | 'royal' | 'midnight' | 'marble' | 'diamond' | 'ruby' | 'emerald' | 'gold' | 'obsidian';
+export type BoardTheme = 'classic' | 'wood' | 'ocean' | 'forest' | 'ice' | 'neon' | 'royal' | 'midnight' | 'marble' | 'industrial' | 'diamond' | 'ruby' | 'emerald' | 'gold' | 'obsidian';
 
 export interface Settings {
   soundEnabled: boolean;
@@ -102,12 +112,15 @@ export interface Settings {
   showLegalMoves: boolean;
   autoQueen: boolean;
   boardTheme: BoardTheme;
-  pieceStyle: 'standard' | 'neo' | 'alpha';
+  pieceTheme: PieceTheme;
+  backgroundMusicEnabled: boolean;
+  is3d: boolean;
   notifications: boolean;
   darkMode: boolean;
   isPremium: boolean;
   premiumExpiry: number | null;
   contactSyncEnabled: boolean;
+  musicVolume: number;
 }
 
 export interface BoardThemeConfig {
@@ -116,6 +129,8 @@ export interface BoardThemeConfig {
   dark: string;
   border: string;
   isPremium?: boolean;
+  isLuxury?: boolean; // Subscriber-only
+  requiredRank?: RankName;
   // Premium theme extras
   lightGradient?: string;
   darkGradient?: string;
@@ -125,22 +140,26 @@ export interface BoardThemeConfig {
 }
 
 export const BOARD_THEMES: Record<BoardTheme, BoardThemeConfig> = {
-  classic: { name: 'Classic', light: 'bg-amber-100', dark: 'bg-amber-700', border: 'border-amber-800' },
-  wood: { name: 'Wood', light: 'bg-orange-200', dark: 'bg-orange-800', border: 'border-orange-900' },
-  ocean: { name: 'Ocean', light: 'bg-cyan-100', dark: 'bg-cyan-600', border: 'border-cyan-800' },
-  forest: { name: 'Forest', light: 'bg-green-100', dark: 'bg-green-700', border: 'border-green-900' },
-  ice: { name: 'Ice', light: 'bg-blue-50', dark: 'bg-blue-400', border: 'border-blue-600' },
-  neon: { name: 'Neon', light: 'bg-fuchsia-200', dark: 'bg-purple-700', border: 'border-purple-500' },
-  royal: { name: 'Royal', light: 'bg-yellow-100', dark: 'bg-indigo-700', border: 'border-indigo-900' },
-  midnight: { name: 'Midnight', light: 'bg-slate-400', dark: 'bg-slate-800', border: 'border-slate-900' },
-  marble: { name: 'Marble', light: 'bg-gray-100', dark: 'bg-gray-500', border: 'border-gray-700' },
-  // Premium Themes - Truly Premium with special effects
+  // Free (Rank 1-10)
+  classic: { name: 'Classic', light: 'bg-amber-100', dark: 'bg-amber-700', border: 'border-amber-800', requiredRank: 'Pawn' },
+  wood: { name: 'Wood', light: 'bg-orange-200', dark: 'bg-orange-800', border: 'border-orange-900', requiredRank: 'Knight' },
+  forest: { name: 'Forest', light: 'bg-green-100', dark: 'bg-green-700', border: 'border-green-900', requiredRank: 'Bishop' },
+  ice: { name: 'Ice', light: 'bg-blue-50', dark: 'bg-blue-400', border: 'border-blue-600', requiredRank: 'Rook' },
+  ocean: { name: 'Ocean', light: 'bg-cyan-100', dark: 'bg-cyan-600', border: 'border-cyan-800', requiredRank: 'Squire' },
+  neon: { name: 'Neon', light: 'bg-fuchsia-200', dark: 'bg-purple-700', border: 'border-purple-500', requiredRank: 'Champion' },
+  royal: { name: 'Royal', light: 'bg-yellow-100', dark: 'bg-indigo-700', border: 'border-indigo-900', requiredRank: 'Elite' },
+  midnight: { name: 'Midnight', light: 'bg-slate-400', dark: 'bg-slate-800', border: 'border-slate-900', requiredRank: 'Master' },
+  marble: { name: 'Marble', light: 'bg-gray-100', dark: 'bg-gray-500', border: 'border-gray-700', requiredRank: 'Grandmaster' },
+  industrial: { name: 'Industrial', light: 'bg-zinc-300', dark: 'bg-zinc-700', border: 'border-zinc-900', requiredRank: 'Legend' },
+
+  // Luxury (Premium Only)
   diamond: {
     name: '💎 Diamond',
     light: 'premium-diamond-light',
     dark: 'premium-diamond-dark',
     border: 'border-cyan-400',
     isPremium: true,
+    isLuxury: true,
     glowColor: 'rgba(103, 232, 249, 0.5)',
     pattern: 'diamond'
   },
@@ -148,9 +167,10 @@ export const BOARD_THEMES: Record<BoardTheme, BoardThemeConfig> = {
     name: '❤️ Ruby',
     light: 'premium-ruby-light',
     dark: 'premium-ruby-dark',
-    border: 'border-rose-500',
+    border: 'border-red-400',
     isPremium: true,
-    glowColor: 'rgba(244, 63, 94, 0.5)',
+    isLuxury: true,
+    glowColor: 'rgba(239, 68, 68, 0.5)',
     pattern: 'ruby'
   },
   emerald: {
@@ -159,27 +179,60 @@ export const BOARD_THEMES: Record<BoardTheme, BoardThemeConfig> = {
     dark: 'premium-emerald-dark',
     border: 'border-emerald-400',
     isPremium: true,
-    glowColor: 'rgba(52, 211, 153, 0.5)',
+    isLuxury: true,
+    glowColor: 'rgba(16, 185, 129, 0.5)',
     pattern: 'emerald'
   },
   gold: {
-    name: '🌟 Gold',
+    name: '✨ Gold',
     light: 'premium-gold-light',
     dark: 'premium-gold-dark',
-    border: 'border-yellow-400',
+    border: 'border-amber-400',
     isPremium: true,
-    glowColor: 'rgba(250, 204, 21, 0.5)',
+    isLuxury: true,
+    glowColor: 'rgba(251, 191, 36, 0.6)',
     pattern: 'gold'
   },
   obsidian: {
-    name: '🖤 Obsidian',
+    name: '🌘 Obsidian',
     light: 'premium-obsidian-light',
     dark: 'premium-obsidian-dark',
-    border: 'border-purple-500',
+    border: 'border-gray-800',
     isPremium: true,
-    glowColor: 'rgba(168, 85, 247, 0.5)',
+    isLuxury: true,
+    glowColor: 'rgba(15, 23, 42, 0.8)',
     pattern: 'obsidian'
-  },
+  }
+};
+
+export type PieceTheme = 'classic' | 'neo' | 'alpha' | 'vintage' | 'pixel' | 'minimal' | 'round' | 'cubist' | 'modern' | 'simple' | 'fantasy' | 'scifi' | 'glass' | 'metal' | 'neon_pieces';
+
+export interface PieceThemeConfig {
+  name: string;
+  isPremium?: boolean;
+  isLuxury?: boolean;
+  requiredRank?: RankName;
+}
+
+export const PIECE_THEMES: Record<PieceTheme, PieceThemeConfig> = {
+  // Free (Rank 1-10)
+  classic: { name: 'Classic', requiredRank: 'Pawn' },
+  neo: { name: 'Neo', requiredRank: 'Knight' },
+  alpha: { name: 'Alpha', requiredRank: 'Bishop' },
+  vintage: { name: 'Vintage', requiredRank: 'Rook' },
+  pixel: { name: 'Pixel', requiredRank: 'Squire' },
+  minimal: { name: 'Minimal', requiredRank: 'Champion' },
+  round: { name: 'Round', requiredRank: 'Elite' },
+  cubist: { name: 'Cubist', requiredRank: 'Master' },
+  modern: { name: 'Modern', requiredRank: 'Grandmaster' },
+  simple: { name: 'Simple', requiredRank: 'Legend' },
+
+  // Luxury (Premium Only)
+  fantasy: { name: 'Fantasy', isPremium: true, isLuxury: true },
+  scifi: { name: 'Sci-Fi', isPremium: true, isLuxury: true },
+  glass: { name: 'Glass', isPremium: true, isLuxury: true },
+  metal: { name: 'Metal', isPremium: true, isLuxury: true },
+  neon_pieces: { name: 'Neon', isPremium: true, isLuxury: true },
 };
 
 export interface ActiveMatch {
@@ -225,6 +278,9 @@ interface AppState {
   // Settings
   settings: Settings;
 
+  // UI State
+  unlockedModalQueue: { type: 'board' | 'piece', id: string }[];
+
   // Actions - User
   setHasSeenWelcome: (seen: boolean) => void;
   updateUser: (updates: Partial<UserProfile>) => void;
@@ -245,7 +301,10 @@ interface AppState {
   makeGameMove: (move: Move) => void;
   makeComputerMove: () => Promise<void>;
   resetGame: () => void;
-  endGame: (result: 'win' | 'loss' | 'draw') => { coinsWon: number; xpEarned: number } | void;
+  undoMove: () => void;
+  clearGame: () => void;
+  endGame: (result: 'win' | 'loss' | 'draw') => { coinsWon: number; xpEarned: number } | undefined;
+  recoverBet: () => { success: boolean; amount: number };
 
   // Actions - Friends
   addFriend: (friend: Friend) => void;
@@ -265,6 +324,12 @@ interface AppState {
   checkSeasonTransition: () => void;
   syncToCloud: () => Promise<void>;
   syncContactsAction: () => Promise<void>;
+  solvePuzzle: (puzzleId: string, reward: number) => void;
+  claimPuzzleSetReward: (setId: string, reward: number) => void;
+
+  // Actions - Progression
+  checkUnlocks: () => void;
+  dismissUnlockModal: () => void;
 }
 
 const createDefaultUser = (): UserProfile => {
@@ -290,7 +355,7 @@ const createDefaultUser = (): UserProfile => {
       currentLossStreak: 0,
       longestWinStreak: 0,
       lastMatchResult: null,
-      streakBonusMultiplier: 0,
+      streakBonusMultiplier: 0
     },
     currentSeasonStats: null,
     gamesPlayed: 0,
@@ -302,6 +367,8 @@ const createDefaultUser = (): UserProfile => {
     lastGiftClaimTime: 0,
     phoneNumber: '',
     hasClaimedSignupReward: false,
+    solvedPuzzles: [],
+    unlockedItems: ['classic'] // Always unlock classic by default
   };
 };
 
@@ -311,12 +378,15 @@ const defaultSettings: Settings = {
   showLegalMoves: true,
   autoQueen: false,
   boardTheme: 'classic',
-  pieceStyle: 'standard',
+  pieceTheme: 'classic',
+  backgroundMusicEnabled: false,
+  is3d: false,
   notifications: true,
   darkMode: true,
   isPremium: false,
   premiumExpiry: null,
   contactSyncEnabled: false,
+  musicVolume: 0.5,
 };
 
 const createDefaultFriends = (): Friend[] => [];
@@ -346,7 +416,9 @@ export const useGameStore = create<AppState>()(
       chatRooms: {},
       incomingChallenges: [],
       gameHistory: defaultHistory,
+
       settings: defaultSettings,
+      unlockedModalQueue: [],
 
       setHasSeenWelcome: (seen) => set({ hasSeenWelcome: seen }),
 
@@ -357,6 +429,7 @@ export const useGameStore = create<AppState>()(
         if (get().settings.isPremium) {
           get().syncToCloud();
         }
+        get().checkUnlocks();
       },
 
       updateProfile: (name, email, gender, country, avatar) => {
@@ -390,6 +463,17 @@ export const useGameStore = create<AppState>()(
           }
         };
       }),
+
+      // Hook for checking unlocks after migration
+      /* (In migrateFromOldRating) logic finishes with set, we can call checkUnlocks after */
+      // But migrateFromOldRating returns an object to set, so we can't easily chain.
+      // We'll leave it as is for now and assume the next action triggers it or user plays a game.
+      // Actually refactoring migrateFromOldRating to use set(state => ...) allows side effects but returning object is cleaner.
+      // We'll explicitly call checkUnlocks in the component calling this, or just rely on endGame.
+      // Better: override migrateFromOldRating to call checkUnlocks.
+      // Since it uses set(state => ... return { ... }), we can't easily add a side effect *after* state update inside the return.
+      // Use get().checkUnlocks() in a separate useEffect or just add it to endGame. 
+
 
       claimGift: () => {
         const state = get();
@@ -491,7 +575,7 @@ export const useGameStore = create<AppState>()(
           amount: amount,
           balance: newBalance,
           timestamp: Date.now(),
-          description: `Daily reward (Day ${newStreak}): +${amount} coins`
+          description: `Daily reward(Day ${newStreak}): +${amount} coins`
         };
 
         set({
@@ -639,6 +723,31 @@ export const useGameStore = create<AppState>()(
         }
       },
 
+      undoMove: () => {
+        const state = get();
+        if (!state.currentGame || state.currentGame.moveHistory.length === 0) return;
+
+        // In vs Computer mode, undo 2 moves (player + computer)
+        // In vs Human mode, undo 1 move
+        const movesToUndo = state.isVsComputer ? 2 : 1;
+        const newHistory = state.currentGame.moveHistory.slice(0, -movesToUndo);
+
+        // Re-play history from start
+        let replayedState = createInitialGameState();
+        for (const move of newHistory) {
+          replayedState = makeMove(replayedState, move);
+        }
+
+        set({ currentGame: replayedState });
+      },
+
+      clearGame: () => set({
+        currentGame: null,
+        gameMode: null,
+        activeMatch: null,
+        isVsComputer: false
+      }),
+
       endGame: (result) => {
         const state = get();
         const { activeMatch, user, currentSeason } = state;
@@ -677,7 +786,7 @@ export const useGameStore = create<AppState>()(
 
           if (result === 'win') {
             netChange = coinsWon;
-            description = `PvE Win: +${coinsWon} coins (180% of ${betAmount})`;
+            description = `PvE Win: +${coinsWon} coins(180 % of ${betAmount})`;
           } else if (result === 'loss') {
             netChange = 0;
             description = `PvE Loss: -${betAmount} coins`;
@@ -716,6 +825,7 @@ export const useGameStore = create<AppState>()(
 
           coinsWon = pvpResult.payout;
           xpEarned = pvpResult.xpEarned;
+          winsEarned = pvpResult.winsEarned;
 
           let netChange = 0;
           let description = '';
@@ -728,7 +838,7 @@ export const useGameStore = create<AppState>()(
             description = `PvP Loss: -${betAmount} coins`;
           } else {
             netChange = pvpResult.payout;
-            description = `PvP Draw: ${netChange} coins refunded (90%)`;
+            description = `PvP Draw: ${netChange} coins refunded(90 %)`;
           }
 
           const newBalance = updatedWallet.balance + netChange;
@@ -797,7 +907,7 @@ export const useGameStore = create<AppState>()(
         const newHistoryItem: GameHistory = {
           id: Date.now().toString(),
           opponent: activeMatch.type === 'pve' ?
-            `Computer (${difficultyName})` :
+            `Computer(${difficultyName})` :
             state.friends.find(f => f.id === activeMatch.opponentId)?.name || 'Player 2',
           opponentAvatar: activeMatch.type === 'pve' ? '🤖' : '👤',
           result,
@@ -830,16 +940,55 @@ export const useGameStore = create<AppState>()(
             beginnerWins: activeMatch.difficulty === 'beginner' && result === 'win' ?
               user.beginnerWins + 1 : user.beginnerWins,
           },
-          currentGame: result === 'loss' ? state.currentGame : null,
-          gameMode: result === 'loss' ? state.gameMode : null,
-          activeMatch: result === 'loss' ? state.activeMatch : null,
+          currentGame: state.currentGame, // Keep for results screen
+          gameMode: state.gameMode,
+          activeMatch: state.activeMatch,
+        });
+
+        if (get().settings.isPremium) {
+          get().syncToCloud();
+        }
+        get().checkUnlocks();
+
+        return { coinsWon, xpEarned };
+      },
+
+      recoverBet: () => {
+        const state = get();
+        const { activeMatch, user } = state;
+
+        if (!activeMatch || activeMatch.betAmount <= 0) {
+          return { success: false, amount: 0 };
+        }
+
+        const amountToRecover = activeMatch.betAmount;
+        const newBalance = user.wallet.balance + amountToRecover;
+
+        const transaction = {
+          id: crypto.randomUUID(),
+          type: 'ad_reward' as TransactionType,
+          amount: amountToRecover,
+          balance: newBalance,
+          timestamp: Date.now(),
+          description: `Recovered join cost: +${amountToRecover} coins`,
+        };
+
+        set({
+          user: {
+            ...user,
+            wallet: {
+              ...user.wallet,
+              balance: newBalance,
+              transactions: [transaction, ...user.wallet.transactions].slice(0, 100),
+            },
+          },
         });
 
         if (get().settings.isPremium) {
           get().syncToCloud();
         }
 
-        return { coinsWon, xpEarned };
+        return { success: true, amount: amountToRecover };
       },
 
       addFriend: (friend) => set((state) => ({
@@ -939,6 +1088,7 @@ export const useGameStore = create<AppState>()(
         if (get().settings.isPremium) {
           get().syncToCloud();
         }
+        get().checkUnlocks();
       },
 
       checkSeasonTransition: () => {
@@ -980,12 +1130,86 @@ export const useGameStore = create<AppState>()(
                 totalEarned: amount > 0 ? currentWallet.totalEarned + amount : currentWallet.totalEarned,
                 transactions: [transaction, ...currentWallet.transactions].slice(0, 100),
               },
-            },
+            }
           };
         });
         if (get().settings.isPremium) {
           get().syncToCloud();
         }
+      },
+
+      checkUnlocks: () => {
+        const state = get();
+        const userRankValue = getRankValue(state.user.rank);
+        const currentUnlocks = new Set(state.user.unlockedItems);
+        const newUnlocks: { type: 'board' | 'piece', id: string }[] = [];
+
+        // Check Board Themes
+        Object.entries(BOARD_THEMES).forEach(([id, theme]) => {
+          // We only permanently unlock "Free" themes that have Rank requirements.
+          // Premium themes are accessed dynamically via subscription status.
+          if (!theme.isPremium && !theme.isLuxury) {
+            let canUnlock = false;
+            if (theme.requiredRank) {
+              const reqRankValue = getRankValue(theme.requiredRank);
+              if (userRankValue >= reqRankValue) {
+                canUnlock = true;
+              }
+            } else {
+              canUnlock = true; // Default locked
+            }
+
+            if (canUnlock && !currentUnlocks.has(id)) {
+              currentUnlocks.add(id);
+              // Queue modal only for non-default items that are newly unlocked
+              if (theme.requiredRank) {
+                newUnlocks.push({ type: 'board', id });
+              }
+            }
+          }
+        });
+
+        // Check Piece Themes
+        Object.entries(PIECE_THEMES).forEach(([id, theme]) => {
+          if (!theme.isPremium && !theme.isLuxury) {
+            let canUnlock = false;
+            if (theme.requiredRank) {
+              const reqRankValue = getRankValue(theme.requiredRank);
+              if (userRankValue >= reqRankValue) {
+                canUnlock = true;
+              }
+            } else {
+              canUnlock = true;
+            }
+
+            if (canUnlock && !currentUnlocks.has(id)) {
+              currentUnlocks.add(id);
+              if (theme.requiredRank) {
+                newUnlocks.push({ type: 'piece', id });
+              }
+            }
+          }
+        });
+
+        if (currentUnlocks.size !== state.user.unlockedItems.length) {
+          set((state) => ({
+            user: {
+              ...state.user,
+              unlockedItems: Array.from(currentUnlocks)
+            },
+            unlockedModalQueue: [...state.unlockedModalQueue, ...newUnlocks]
+          }));
+
+          if (state.settings.isPremium) {
+            get().syncToCloud();
+          }
+        }
+      },
+
+      dismissUnlockModal: () => {
+        set((state) => ({
+          unlockedModalQueue: state.unlockedModalQueue.slice(1)
+        }));
       },
 
       syncToCloud: async () => {
@@ -1061,6 +1285,78 @@ export const useGameStore = create<AppState>()(
           console.error('[Store] Contact sync failed:', error);
         }
       },
+
+      solvePuzzle: (puzzleId, reward) => {
+        set((state) => {
+          if (state.user.solvedPuzzles.includes(puzzleId)) {
+            return state;
+          }
+
+          const currentWallet = state.user.wallet;
+          const newBalance = currentWallet.balance + reward;
+          const transaction = {
+            id: crypto.randomUUID(),
+            type: 'puzzle_reward' as TransactionType,
+            amount: reward,
+            balance: newBalance,
+            timestamp: Date.now(),
+            description: `Puzzle Solved: ${puzzleId} `,
+          };
+
+          return {
+            user: {
+              ...state.user,
+              solvedPuzzles: [...state.user.solvedPuzzles, puzzleId],
+              wallet: {
+                ...currentWallet,
+                balance: newBalance,
+                totalEarned: currentWallet.totalEarned + reward,
+                transactions: [transaction, ...currentWallet.transactions].slice(0, 100),
+              },
+            },
+          };
+        });
+        if (get().settings.isPremium) {
+          get().syncToCloud();
+        }
+      },
+
+      claimPuzzleSetReward: (setId, reward) => {
+        set((state) => {
+          const itemKey = `puzzle_set_reward_${setId}`;
+          if (state.user.unlockedItems.includes(itemKey)) {
+            return state;
+          }
+
+          const currentWallet = state.user.wallet;
+          const newBalance = currentWallet.balance + reward;
+          const transaction = {
+            id: crypto.randomUUID(),
+            type: 'reward' as TransactionType,
+            amount: reward,
+            balance: newBalance,
+            timestamp: Date.now(),
+            description: `Puzzle Set Reward: ${setId}`,
+          };
+
+          return {
+            user: {
+              ...state.user,
+              unlockedItems: [...state.user.unlockedItems, itemKey],
+              wallet: {
+                ...currentWallet,
+                balance: newBalance,
+                totalEarned: currentWallet.totalEarned + reward,
+                transactions: [transaction, ...currentWallet.transactions].slice(0, 100),
+              },
+            },
+          };
+        });
+
+        if (get().settings.isPremium) {
+          get().syncToCloud();
+        }
+      },
     }),
     {
       name: 'chess-champ-storage',
@@ -1072,6 +1368,14 @@ export const useGameStore = create<AppState>()(
         friends: state.friends,
         gameHistory: state.gameHistory,
         settings: state.settings,
+        // Make sure to persist unlockedModalQueue if we want it to survive restart, 
+        // prompt says "Persist unlock state... modal does not repeat".
+        // unlockedItems is in user, so it persists. 
+        // unlockedModalQueue checks if it's already shown? No, checking logic adds to queue only if not in unlockedItems.
+        // But if app crashes while modal is open? 
+        // The modal should probably remove itself from queue only when dismissed.
+        // We can persist queue too.
+        unlockedModalQueue: state.unlockedModalQueue
       }),
     }
   )
@@ -1081,5 +1385,5 @@ function formatDuration(ms: number): string {
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')} `;
 }

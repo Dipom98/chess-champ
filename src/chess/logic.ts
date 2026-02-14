@@ -522,56 +522,93 @@ export function evaluateBoard(board: Board): number {
   return score;
 }
 
-export function getBestMove(gameState: GameState, depth: number = 3, difficulty: string = 'intermediate'): Move | null {
+export function getBestMove(gameState: GameState, maxDepth: number = 3, difficulty: string = 'intermediate'): Move | null {
   const moves = getAllLegalMoves(gameState);
   if (moves.length === 0) return null;
 
-  const isMaximizing = gameState.currentPlayer === 'white';
-
-  // Scoring all potential moves
-  const evaluatedMoves = moves.map(move => {
-    const newState = makeMove(gameState, move);
-    const score = minimax(newState, depth - 1, -Infinity, Infinity, !isMaximizing);
-    return { move, score };
-  });
-
-  // Sort moves by score
-  if (isMaximizing) {
-    evaluatedMoves.sort((a, b) => b.score - a.score);
-  } else {
-    evaluatedMoves.sort((a, b) => a.score - b.score);
-  }
-
-  // Difficulty-based move selection (to avoid robotic/same-level play)
+  // Difficulty-based randomness (to avoid robotic play / allow mistakes)
   if (difficulty === 'beginner') {
-    // Beginner: 25% chance of picking a random legal move
-    // Otherwise, pick from top 5 moves randomly
-    if (Math.random() < 0.25) {
-      return moves[Math.floor(Math.random() * moves.length)];
-    }
-    const topCount = Math.min(evaluatedMoves.length, 5);
-    return evaluatedMoves[Math.floor(Math.random() * topCount)].move;
-
+    if (Math.random() < 0.25) return moves[Math.floor(Math.random() * moves.length)];
   } else if (difficulty === 'intermediate') {
-    // Intermediate: 10% chance of random move
-    // Otherwise, pick from top 3 moves
-    if (Math.random() < 0.10) {
-      return moves[Math.floor(Math.random() * moves.length)];
-    }
-    const topCount = Math.min(evaluatedMoves.length, 3);
-    return evaluatedMoves[Math.floor(Math.random() * topCount)].move;
-
-  } else if (difficulty === 'advanced') {
-    // Advanced: Always pick from top 2 moves, weighted towards the best
-    const topCount = Math.min(evaluatedMoves.length, 2);
-    if (Math.random() < 0.8) {
-      return evaluatedMoves[0].move;
-    }
-    return evaluatedMoves[topCount - 1].move;
+    if (Math.random() < 0.10) return moves[Math.floor(Math.random() * moves.length)];
   }
 
-  // Expert and Engine: Always pick the absolute best move
-  return evaluatedMoves[0].move;
+  const isMaximizing = gameState.currentPlayer === 'white';
+  const timeLimit = 1000; // 1 second time limit
+  const startTime = Date.now();
+
+  let bestMoveSoFar: Move | null = null;
+  let bestScoreSoFar = isMaximizing ? -Infinity : Infinity;
+
+  // Iterative Deepening
+  // Start from depth 1 and go up to maxDepth
+  for (let currentDepth = 1; currentDepth <= maxDepth; currentDepth++) {
+    const depthStartTime = Date.now();
+
+    // Check if we ran out of time before starting this depth
+    if (depthStartTime - startTime > timeLimit) break;
+
+    try {
+      // Re-evaluate all moves at current depth
+      const evaluatedMoves = moves.map(move => {
+        const newState = makeMove(gameState, move);
+        // Pass time info to minimax
+        const score = minimax(newState, currentDepth - 1, -Infinity, Infinity, !isMaximizing, startTime, timeLimit);
+        return { move, score };
+      });
+
+      // Sort moves by score
+      if (isMaximizing) {
+        evaluatedMoves.sort((a, b) => b.score - a.score);
+      } else {
+        evaluatedMoves.sort((a, b) => a.score - b.score);
+      }
+
+      // Update best move found at this completed depth
+      if (evaluatedMoves.length > 0) {
+        // For lower difficulties, we might not want the absolute best move,
+        // but for "Engine" or "Advanced" we do.
+        // The original logic picked from top N based on difficulty.
+        // Let's refine this:
+        // Identify "candidate moves" from this depth
+
+        let selectedMove: Move;
+
+        if (difficulty === 'beginner') {
+          const topCount = Math.min(evaluatedMoves.length, 5);
+          selectedMove = evaluatedMoves[Math.floor(Math.random() * topCount)].move;
+        } else if (difficulty === 'intermediate') {
+          const topCount = Math.min(evaluatedMoves.length, 3);
+          selectedMove = evaluatedMoves[Math.floor(Math.random() * topCount)].move;
+        } else if (difficulty === 'advanced') {
+          const topCount = Math.min(evaluatedMoves.length, 2);
+          // Weighted choice
+          if (Math.random() < 0.8) {
+            selectedMove = evaluatedMoves[0].move;
+          } else {
+            selectedMove = evaluatedMoves[topCount - 1].move;
+          }
+        } else {
+          // Expert / Engine: Best move
+          selectedMove = evaluatedMoves[0].move;
+        }
+
+        bestMoveSoFar = selectedMove;
+      }
+
+    } catch (e) {
+      // If minimax throws a timeout, we stop and use the result from the previous depth
+      if ((e as Error).message === 'Timeout') {
+        break; // Stop deepening
+      } else {
+        throw e; // Re-throw other errors
+      }
+    }
+  }
+
+  // If we found a move (which we should have, at least from depth 1), return it.
+  // If something went wrong and we have no move (unlikely), pick random.
+  return bestMoveSoFar || moves[Math.floor(Math.random() * moves.length)];
 }
 
 function minimax(
@@ -579,8 +616,16 @@ function minimax(
   depth: number,
   alpha: number,
   beta: number,
-  isMaximizing: boolean
+  isMaximizing: boolean,
+  startTime: number,
+  timeLimit: number
 ): number {
+  // Time check every ~1000 nodes or just every call?
+  // Every call is safer but slightly slower. Let's do every call for simplicity and safety.
+  if ((Date.now() - startTime) > timeLimit) {
+    throw new Error('Timeout');
+  }
+
   if (depth === 0 || gameState.isCheckmate || gameState.isStalemate) {
     if (gameState.isCheckmate) {
       // Prioritize quicker checkmates
@@ -605,7 +650,7 @@ function minimax(
     let maxScore = -Infinity;
     for (const move of moves) {
       const newState = makeMove(gameState, move);
-      const score = minimax(newState, depth - 1, alpha, beta, false);
+      const score = minimax(newState, depth - 1, alpha, beta, false, startTime, timeLimit);
       maxScore = Math.max(maxScore, score);
       alpha = Math.max(alpha, score);
       if (beta <= alpha) break;
@@ -615,7 +660,7 @@ function minimax(
     let minScore = Infinity;
     for (const move of moves) {
       const newState = makeMove(gameState, move);
-      const score = minimax(newState, depth - 1, alpha, beta, true);
+      const score = minimax(newState, depth - 1, alpha, beta, true, startTime, timeLimit);
       minScore = Math.min(minScore, score);
       beta = Math.min(beta, score);
       if (beta <= alpha) break;
