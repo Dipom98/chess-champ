@@ -79,17 +79,19 @@ body.light-mode .text-white {
   color: var(--text-primary) !important;
 }
 
-body.light-mode .text-white\/50 {
+body.light-mode .text-white\/90,
+body.light-mode .text-white\/80,
+body.light-mode .text-white\/70,
+body.light-mode .text-white\/60 {
   color: var(--text-secondary) !important;
 }
 
+body.light-mode .text-white\/50,
 body.light-mode .text-white\/40,
-body.light-mode .text-white\/30 {
+body.light-mode .text-white\/30,
+body.light-mode .text-white\/20,
+body.light-mode .text-white\/10 {
   color: var(--text-muted) !important;
-}
-
-body.light-mode .text-white\/70 {
-  color: var(--text-secondary) !important;
 }
 
 /* Background colors for light mode */

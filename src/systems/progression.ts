@@ -125,7 +125,7 @@ export const RANKS: Record<RankName, RankInfo> = {
  */
 export function getWinsRequiredForLevel(level: number): number {
   if (level <= 0) return 0;
-  
+
   const hardcodedThresholds: Record<number, number> = {
     1: 2,
     2: 5,
@@ -133,18 +133,18 @@ export function getWinsRequiredForLevel(level: number): number {
     4: 20,
     5: 30,
   };
-  
+
   if (level <= 5) {
     return hardcodedThresholds[level] || 2;
   }
-  
+
   // Scalable formula for L6+
   // Base: 30, linear scaling: 5 per level, exponential factor: 1.3
   const base = 30;
   const levelDiff = level - 5;
   const linearPart = levelDiff * 5;
   const exponentialPart = Math.pow(levelDiff, 1.3);
-  
+
   return Math.floor(base + linearPart + exponentialPart);
 }
 
@@ -165,7 +165,7 @@ export function getCumulativeWinsForLevel(targetLevel: number): number {
 export function getLevelFromWins(totalWins: number): number {
   let level = 1;
   let winsNeeded = 0;
-  
+
   while (level < 100) {
     winsNeeded += getWinsRequiredForLevel(level);
     if (totalWins < winsNeeded) {
@@ -173,7 +173,7 @@ export function getLevelFromWins(totalWins: number): number {
     }
     level++;
   }
-  
+
   return 100; // Max level
 }
 
@@ -209,7 +209,7 @@ export function calculateLevelProgress(totalPveWins: number): LevelProgress {
   const winsForCurrentLevel = getCumulativeWinsForLevel(level);
   const winsForNextLevel = level < 100 ? getWinsRequiredForLevel(level) : 0;
   const currentLevelWins = totalPveWins - winsForCurrentLevel;
-  
+
   return {
     level,
     currentLevelWins,
@@ -224,12 +224,12 @@ export function calculateLevelProgress(totalPveWins: number): LevelProgress {
  * Check if player leveled up after a win
  */
 export function checkLevelUp(
-  previousWins: number, 
+  previousWins: number,
   newWins: number
 ): { leveledUp: boolean; oldLevel: number; newLevel: number; levelsGained: number } {
   const oldLevel = getLevelFromWins(previousWins);
   const newLevel = getLevelFromWins(newWins);
-  
+
   return {
     leveledUp: newLevel > oldLevel,
     oldLevel,
@@ -245,21 +245,23 @@ export function checkLevelUp(
  */
 export function getAIDepth(playerLevel: number, difficulty: AIDifficulty): number {
   const baseDepths: Record<AIDifficulty, number> = {
-    'beginner': 1,
-    'intermediate': 2,
-    'advanced': 3,
-    'expert': 4,
-    'engine': 5,
+    'beginner': 2,
+    'intermediate': 3,
+    'advanced': 4,
+    'expert': 5,
+    'engine': 6,
   };
-  
+
   const rankInfo = getRankInfo(playerLevel);
   const baseDepth = baseDepths[difficulty];
-  
+
   // Add rank bonus for higher difficulties
   if (difficulty === 'advanced' || difficulty === 'expert' || difficulty === 'engine') {
-    return Math.min(baseDepth + Math.floor(rankInfo.aiDepthBonus / 2), 7);
+    // Legends and Grandmasters get a significant boost to engine depth
+    const bonus = Math.floor(rankInfo.aiDepthBonus / 2);
+    return Math.min(baseDepth + bonus, 8);
   }
-  
+
   return baseDepth;
 }
 
@@ -294,7 +296,7 @@ export function canAccessDifficulty(playerLevel: number, difficulty: AIDifficult
 export function migrateRatingToLevel(oldRating: number): number {
   // Clamp rating
   const rating = Math.max(400, Math.min(3000, oldRating));
-  
+
   // Linear mapping with some curve
   // 400 → Level 1
   // 1000 → Level 15
@@ -303,7 +305,7 @@ export function migrateRatingToLevel(oldRating: number): number {
   // 2000 → Level 55
   // 2500 → Level 80
   // 3000 → Level 100
-  
+
   if (rating <= 1000) {
     return Math.floor(1 + ((rating - 400) / 600) * 14);
   } else if (rating <= 1500) {

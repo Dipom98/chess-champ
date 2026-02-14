@@ -10,18 +10,19 @@ import { getLevelProgressPercent, calculateLevelProgress } from '@/systems/progr
 
 export function HomeScreen() {
   const navigate = useNavigate();
-  const { user, friends, gameHistory, currentSeason, dailyReward, claimDailyReward, canClaimDailyReward, settings } = useGameStore();
-  
+  const { user, friends, gameHistory, currentSeason, dailyReward, claimDailyReward, canClaimDailyReward, claimSignupReward, settings } = useGameStore();
+
   const [showDailyReward, setShowDailyReward] = useState(false);
+  const [showSignupReward, setShowSignupReward] = useState(!user.hasClaimedSignupReward);
   const [rewardClaimed, setRewardClaimed] = useState<{ amount: number; streak: number } | null>(null);
   const [isClaimAnimating, setIsClaimAnimating] = useState(false);
-  
+
   const onlineFriends = friends.filter(f => f.online);
   const rankInfo = RANKS[user.rank];
   const levelProgress = calculateLevelProgress(user.totalPveWins);
   const progressPercent = getLevelProgressPercent(levelProgress);
   const canClaim = canClaimDailyReward();
-  
+
   // Apply dark mode class to body
   useEffect(() => {
     if (settings.darkMode) {
@@ -30,17 +31,17 @@ export function HomeScreen() {
       document.body.classList.add('light-mode');
     }
   }, [settings.darkMode]);
-  
+
   const handleOpenDailyReward = () => {
     setRewardClaimed(null);
     setShowDailyReward(true);
   };
-  
+
   const handleClaimDailyReward = () => {
     if (!canClaim || isClaimAnimating) return;
-    
+
     setIsClaimAnimating(true);
-    
+
     setTimeout(() => {
       const result = claimDailyReward();
       if (result.success) {
@@ -49,38 +50,38 @@ export function HomeScreen() {
       setIsClaimAnimating(false);
     }, 500);
   };
-  
+
   const streakDays = [1, 2, 3, 4, 5, 6, 7];
   const getRewardForDay = (day: number) => 100 + (day - 1) * 50;
 
   const quickActions = [
-    { 
-      icon: Play, 
-      label: 'Quick Play', 
+    {
+      icon: Play,
+      label: 'Quick Play',
       subtitle: 'Jump into a game',
       color: 'from-emerald-500 via-green-500 to-teal-600',
       glow: 'shadow-emerald-500/30',
       action: () => navigate('/play'),
     },
-    { 
-      icon: Trophy, 
-      label: 'Ranked', 
+    {
+      icon: Trophy,
+      label: 'Ranked',
       subtitle: 'Climb the ladder',
       color: 'from-amber-500 via-orange-500 to-red-500',
       glow: 'shadow-amber-500/30',
       action: () => navigate('/ranked'),
     },
-    { 
-      icon: Target, 
-      label: 'Puzzles', 
+    {
+      icon: Target,
+      label: 'Puzzles',
       subtitle: 'Train your mind',
       color: 'from-violet-500 via-purple-500 to-fuchsia-600',
       glow: 'shadow-purple-500/30',
       action: () => navigate('/puzzles'),
     },
-    { 
-      icon: Users, 
-      label: 'Friends', 
+    {
+      icon: Users,
+      label: 'Friends',
       subtitle: 'Challenge others',
       color: 'from-blue-500 via-cyan-500 to-teal-500',
       glow: 'shadow-blue-500/30',
@@ -109,9 +110,9 @@ export function HomeScreen() {
           >
             <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-red-500 flex items-center justify-center text-2xl shadow-lg shadow-amber-500/30 overflow-hidden">
               {user.customProfilePicture ? (
-                <img 
-                  src={user.customProfilePicture} 
-                  alt="Profile" 
+                <img
+                  src={user.customProfilePicture}
+                  alt="Profile"
                   className="w-full h-full object-cover"
                 />
               ) : (
@@ -125,7 +126,7 @@ export function HomeScreen() {
         </motion.div>
 
         {/* Stats Card with Level & Rank */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -134,7 +135,7 @@ export function HomeScreen() {
           {/* Decorative background */}
           <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-amber-500/20 to-orange-500/20 rounded-full blur-2xl" />
           <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-full blur-2xl" />
-          
+
           <div className="relative z-10">
             {/* Level & Rank */}
             <div className="flex items-center justify-between mb-4">
@@ -175,7 +176,7 @@ export function HomeScreen() {
                 />
               </div>
             </div>
-            
+
             {/* Stats Grid */}
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-white/5 rounded-2xl p-3 text-center backdrop-blur-sm">
@@ -194,7 +195,7 @@ export function HomeScreen() {
 
             {/* Wallet Row */}
             <div className="flex gap-3 mt-4">
-              <motion.button 
+              <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => navigate('/wallet')}
@@ -205,7 +206,7 @@ export function HomeScreen() {
                 </div>
                 <span className="text-amber-400 font-bold">{user.wallet.balance.toLocaleString()}</span>
               </motion.button>
-              <motion.div 
+              <motion.div
                 whileHover={{ scale: 1.02 }}
                 className="flex-1 flex items-center gap-2 bg-gradient-to-r from-purple-500/20 to-pink-500/10 rounded-xl px-4 py-2.5 border border-purple-500/20"
               >
@@ -239,7 +240,7 @@ export function HomeScreen() {
               {/* Shine effect */}
               <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-transparent" />
               <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
-              
+
               <div className="relative z-10 w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
                 <action.icon size={22} className="text-white" />
               </div>
@@ -264,7 +265,7 @@ export function HomeScreen() {
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                 Online Now
               </h3>
-              <button 
+              <button
                 onClick={() => navigate('/friends')}
                 className="text-amber-400 text-sm font-medium hover:text-amber-300 transition-colors"
               >
@@ -309,14 +310,14 @@ export function HomeScreen() {
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-white font-bold">Recent Games</h3>
-            <button 
+            <button
               onClick={() => navigate('/history')}
               className="text-amber-400 text-sm font-medium hover:text-amber-300 transition-colors"
             >
               View All
             </button>
           </div>
-          
+
           {gameHistory.length === 0 ? (
             <div className="text-center py-8">
               <div className="w-16 h-16 mx-auto mb-3 rounded-2xl bg-white/5 flex items-center justify-center">
@@ -328,7 +329,7 @@ export function HomeScreen() {
           ) : (
             <div className="space-y-2">
               {gameHistory.slice(0, 3).map((game, index) => (
-                <motion.div 
+                <motion.div
                   key={game.id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -371,17 +372,17 @@ export function HomeScreen() {
           onClick={handleOpenDailyReward}
           className={cn(
             "w-full relative overflow-hidden rounded-2xl p-4 flex items-center gap-4 border",
-            canClaim 
+            canClaim
               ? "bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-red-500/20 border-amber-500/30"
               : "bg-white/5 border-white/10"
           )}
         >
           {/* Animated shine */}
           {canClaim && <div className="absolute inset-0 shimmer" />}
-          
+
           <div className={cn(
             "relative w-12 h-12 rounded-xl flex items-center justify-center shadow-lg",
-            canClaim 
+            canClaim
               ? "bg-gradient-to-br from-amber-400 to-orange-500 shadow-amber-500/30"
               : "bg-white/20"
           )}>
@@ -425,7 +426,7 @@ export function HomeScreen() {
             </div>
           </motion.button>
         )}
-        
+
         {/* Premium Subscription Banner */}
         {!settings.isPremium && (
           <motion.button
@@ -440,7 +441,7 @@ export function HomeScreen() {
             <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-transparent" />
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
             <div className="absolute inset-0 shimmer" />
-            
+
             <div className="relative z-10 flex items-center gap-4">
               <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                 <Star size={24} className="text-white" />
@@ -475,7 +476,7 @@ export function HomeScreen() {
               {/* Background glow */}
               <div className="absolute -top-20 -right-20 w-40 h-40 bg-amber-500/20 rounded-full blur-3xl" />
               <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-orange-500/20 rounded-full blur-3xl" />
-              
+
               {/* Close button */}
               <button
                 onClick={() => setShowDailyReward(false)}
@@ -522,7 +523,7 @@ export function HomeScreen() {
                     const isCompleted = day <= dailyReward.currentStreak;
                     const isToday = day === dailyReward.currentStreak + 1 && canClaim;
                     const reward = getRewardForDay(day);
-                    
+
                     return (
                       <motion.div
                         key={day}
@@ -622,6 +623,74 @@ export function HomeScreen() {
                   Awesome! 🎉
                 </motion.button>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Signup Reward Modal */}
+      <AnimatePresence>
+        {showSignupReward && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.8, y: 50 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.8, y: 50 }}
+              className="glass rounded-3xl p-8 w-full max-w-sm space-y-6 border border-amber-500/30 relative overflow-hidden text-center"
+            >
+              {/* Background glows */}
+              <div className="absolute -top-20 -right-20 w-40 h-40 bg-amber-500/20 rounded-full blur-3xl" />
+              <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-red-500/20 rounded-full blur-3xl" />
+
+              <div className="relative z-10">
+                <motion.div
+                  animate={{
+                    scale: [1, 1.1, 1],
+                    rotate: [0, 5, -5, 0]
+                  }}
+                  transition={{ duration: 4, repeat: Infinity }}
+                  className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-amber-400 via-orange-500 to-red-500 rounded-3xl flex items-center justify-center shadow-2xl shadow-amber-500/40"
+                >
+                  <Gift size={48} className="text-white" />
+                </motion.div>
+
+                <h2 className="text-3xl font-bold text-white mb-2">Welcome Gift! 🎁</h2>
+                <p className="text-white/60 mb-8 leading-relaxed">
+                  Thanks for joining Chess Champ! We've got a special welcome reward for you to get started.
+                </p>
+
+                <div className="bg-white/5 rounded-2xl p-6 mb-8 border border-white/10 backdrop-blur-sm relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-red-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <p className="text-white/50 text-sm uppercase tracking-widest mb-1">Your Reward</p>
+                  <p className="text-4xl font-black text-amber-400 flex items-center justify-center gap-2">
+                    500 <span className="text-2xl">🪙</span>
+                  </p>
+                </div>
+
+                <motion.button
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    const result = claimSignupReward();
+                    if (result.success) {
+                      setShowSignupReward(false);
+                    }
+                  }}
+                  className="w-full py-4 bg-gradient-to-r from-amber-400 via-orange-500 to-red-500 rounded-2xl text-white font-bold text-lg shadow-xl shadow-amber-500/30 relative overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-gradient-to-tr from-white/20 via-transparent to-transparent" />
+                  <div className="absolute inset-0 shimmer opacity-30" />
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    Claim My Reward
+                    <Sparkles size={18} />
+                  </span>
+                </motion.button>
+              </div>
             </motion.div>
           </motion.div>
         )}

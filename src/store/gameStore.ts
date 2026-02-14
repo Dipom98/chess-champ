@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { supabase, pushPlayerSnapshot } from '@/systems/supabase';
 import { GameState, Move, PieceColor } from '@/chess/types';
 import { createInitialGameState, makeMove, getAllLegalMoves, getBestMove } from '@/chess/logic';
 import {
@@ -47,6 +48,24 @@ export interface GameHistory {
   difficulty?: AIDifficulty;
 }
 
+export interface ChatMessage {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  content: string;
+  created_at: string;
+  is_read: boolean;
+}
+
+export interface IncomingChallenge {
+  id: string;
+  sender_id: string;
+  sender_name: string;
+  sender_avatar: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  created_at: string;
+}
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -71,6 +90,8 @@ export interface UserProfile {
   beginnerWins: number;
   giftClaimsToday: number;
   lastGiftClaimTime: number;
+  phoneNumber?: string;
+  hasClaimedSignupReward: boolean;
 }
 
 export type BoardTheme = 'classic' | 'wood' | 'ocean' | 'forest' | 'ice' | 'neon' | 'royal' | 'midnight' | 'marble' | 'diamond' | 'ruby' | 'emerald' | 'gold' | 'obsidian';
@@ -86,6 +107,7 @@ export interface Settings {
   darkMode: boolean;
   isPremium: boolean;
   premiumExpiry: number | null;
+  contactSyncEnabled: boolean;
 }
 
 export interface BoardThemeConfig {
@@ -194,6 +216,8 @@ interface AppState {
   // Friends
   friends: Friend[];
   pendingInvites: string[];
+  chatRooms: Record<string, ChatMessage[]>; // friendId -> messages
+  incomingChallenges: IncomingChallenge[];
 
   // History
   gameHistory: GameHistory[];
@@ -209,6 +233,7 @@ interface AppState {
 
   // Actions - Economy
   claimGift: () => { success: boolean; amount: number; reason?: string };
+  claimSignupReward: () => { success: boolean; amount: number; reason?: string };
   canAffordMatch: (difficulty: AIDifficulty) => boolean;
   claimDailyReward: () => { success: boolean; amount: number; streak: number; reason?: string };
   canClaimDailyReward: () => boolean;
@@ -220,18 +245,26 @@ interface AppState {
   makeGameMove: (move: Move) => void;
   makeComputerMove: () => Promise<void>;
   resetGame: () => void;
-  endGame: (result: 'win' | 'loss' | 'draw') => void;
+  endGame: (result: 'win' | 'loss' | 'draw') => { coinsWon: number; xpEarned: number } | void;
 
   // Actions - Friends
   addFriend: (friend: Friend) => void;
   removeFriend: (id: string) => void;
   sendInvite: (friendId: string) => void;
+  updateFriendStatus: (id: string, online: boolean, lastSeen?: string) => void;
+  addChatMessage: (friendId: string, message: ChatMessage) => void;
+  addChallenge: (challenge: IncomingChallenge) => void;
+  respondToChallenge: (challengeId: string, status: 'accepted' | 'rejected') => Promise<void>;
+  sendMessageAction: (friendId: string, content: string) => Promise<void>;
+  sendChallengeAction: (friendId: string) => Promise<void>;
 
   // Actions - Settings
   updateSettings: (updates: Partial<Settings>) => void;
 
   // Actions - Season
   checkSeasonTransition: () => void;
+  syncToCloud: () => Promise<void>;
+  syncContactsAction: () => Promise<void>;
 }
 
 const createDefaultUser = (): UserProfile => {
@@ -251,7 +284,7 @@ const createDefaultUser = (): UserProfile => {
     totalPveWins: 0,
     currentLevelWins: 0,
     winsRequiredForNextLevel: levelProgress.winsRequiredForNextLevel,
-    wallet: createWallet(500),
+    wallet: createWallet(0),
     streaks: {
       currentWinStreak: 0,
       currentLossStreak: 0,
@@ -267,6 +300,8 @@ const createDefaultUser = (): UserProfile => {
     beginnerWins: 0,
     giftClaimsToday: 0,
     lastGiftClaimTime: 0,
+    phoneNumber: '',
+    hasClaimedSignupReward: false,
   };
 };
 
@@ -281,6 +316,7 @@ const defaultSettings: Settings = {
   darkMode: true,
   isPremium: false,
   premiumExpiry: null,
+  contactSyncEnabled: false,
 };
 
 const createDefaultFriends = (): Friend[] => [];
@@ -307,25 +343,37 @@ export const useGameStore = create<AppState>()(
       activeMatch: null,
       friends: createDefaultFriends(),
       pendingInvites: [],
+      chatRooms: {},
+      incomingChallenges: [],
       gameHistory: defaultHistory,
       settings: defaultSettings,
 
       setHasSeenWelcome: (seen) => set({ hasSeenWelcome: seen }),
 
-      updateUser: (updates) => set((state) => ({
-        user: { ...state.user, ...updates }
-      })),
-
-      updateProfile: (name, email, gender, country, avatar) => set((state) => ({
-        user: {
-          ...state.user,
-          name,
-          email,
-          gender,
-          country,
-          avatar,
+      updateUser: (updates) => {
+        set((state) => ({
+          user: { ...state.user, ...updates }
+        }));
+        if (get().settings.isPremium) {
+          get().syncToCloud();
         }
-      })),
+      },
+
+      updateProfile: (name, email, gender, country, avatar) => {
+        set((state) => ({
+          user: {
+            ...state.user,
+            name,
+            email,
+            gender,
+            country,
+            avatar,
+          }
+        }));
+        if (get().settings.isPremium) {
+          get().syncToCloud();
+        }
+      },
 
       migrateFromOldRating: (oldRating: number) => set((state) => {
         const newLevel = migrateRatingToLevel(oldRating);
@@ -369,7 +417,39 @@ export const useGameStore = create<AppState>()(
           }
         }));
 
+        if (get().settings.isPremium) {
+          get().syncToCloud();
+        }
+
         return { success: true, amount: result.amount };
+      },
+
+      claimSignupReward: () => {
+        const state = get();
+        if (state.user.hasClaimedSignupReward) {
+          return { success: false, amount: 0, reason: 'Already claimed!' };
+        }
+
+        const amount = 500;
+        set((state) => ({
+          user: {
+            ...state.user,
+            wallet: processTransaction(
+              state.user.wallet,
+              'signup_reward',
+              amount,
+              undefined,
+              `Signup reward: +${amount} coins`
+            ),
+            hasClaimedSignupReward: true,
+          }
+        }));
+
+        if (get().settings.isPremium) {
+          get().syncToCloud();
+        }
+
+        return { success: true, amount };
       },
 
       canAffordMatch: (difficulty: AIDifficulty) => {
@@ -389,23 +469,19 @@ export const useGameStore = create<AppState>()(
         const today = new Date().toDateString();
         const yesterday = new Date(Date.now() - 86400000).toDateString();
 
-        // Check if already claimed today
         if (state.dailyReward.lastClaimDate === today) {
           return { success: false, amount: 0, streak: state.dailyReward.currentStreak, reason: 'Already claimed today!' };
         }
 
-        // Calculate streak
         let newStreak = 1;
         if (state.dailyReward.lastClaimDate === yesterday) {
           newStreak = Math.min(state.dailyReward.currentStreak + 1, 7);
         }
 
-        // Calculate reward based on streak (100 base + 50 per streak day, max 7)
         const baseReward = 100;
         const streakBonus = (newStreak - 1) * 50;
         const amount = baseReward + streakBonus;
 
-        // Update wallet balance directly
         const currentWallet = state.user.wallet;
         const newBalance = currentWallet.balance + amount;
 
@@ -435,6 +511,10 @@ export const useGameStore = create<AppState>()(
           }
         });
 
+        if (get().settings.isPremium) {
+          get().syncToCloud();
+        }
+
         return { success: true, amount, streak: newStreak };
       },
 
@@ -442,12 +522,10 @@ export const useGameStore = create<AppState>()(
         const state = get();
         const betAmount = getPveEntryCost(difficulty, state.user.level);
 
-        // Check if can afford
         if (!canAffordBet(state.user.wallet, betAmount)) {
           return false;
         }
 
-        // Lock funds
         const lockedWallet = lockFunds(state.user.wallet, betAmount);
         if (!lockedWallet) return false;
 
@@ -480,14 +558,11 @@ export const useGameStore = create<AppState>()(
       startPvpGame: (mode, timeControl, stakeAmount, opponentId) => {
         const state = get();
 
-        // For local games (no stake), skip wallet check
         if (stakeAmount > 0) {
-          // Check if can afford
           if (!canAffordBet(state.user.wallet, stakeAmount)) {
             return false;
           }
 
-          // Lock funds
           const lockedWallet = lockFunds(state.user.wallet, stakeAmount);
           if (!lockedWallet) return false;
 
@@ -512,7 +587,6 @@ export const useGameStore = create<AppState>()(
             }
           });
         } else {
-          // Local two-player game with no stake
           const gameState = createInitialGameState();
 
           set({
@@ -547,11 +621,10 @@ export const useGameStore = create<AppState>()(
         const moves = getAllLegalMoves(state.currentGame);
         if (moves.length === 0) return;
 
-        // Faster delay for better UX (200ms instead of 500ms)
-        await new Promise(resolve => setTimeout(resolve, 200));
+        await new Promise(resolve => setTimeout(resolve, 300));
 
         const depth = getAIDepth(state.user.level, state.computerDifficulty);
-        const bestMove = getBestMove(state.currentGame, depth);
+        const bestMove = getBestMove(state.currentGame, depth, state.computerDifficulty);
         if (bestMove) {
           const newGameState = makeMove(state.currentGame, bestMove);
           set({ currentGame: newGameState });
@@ -566,12 +639,11 @@ export const useGameStore = create<AppState>()(
         }
       },
 
-      endGame: (result) => set((state) => {
+      endGame: (result) => {
+        const state = get();
         const { activeMatch, user, currentSeason } = state;
 
-        if (!activeMatch) {
-          return state;
-        }
+        if (!activeMatch) return;
 
         let updatedWallet = { ...user.wallet };
         let coinsWon = 0;
@@ -579,13 +651,11 @@ export const useGameStore = create<AppState>()(
         let winsEarned = 0;
         const betAmount = activeMatch.betAmount;
 
-        // First, unlock the locked funds (they were locked when game started)
         updatedWallet = {
           ...updatedWallet,
           lockedBalance: Math.max(0, updatedWallet.lockedBalance - betAmount),
         };
 
-        // Calculate match result
         if (activeMatch.type === 'pve' && activeMatch.difficulty) {
           const pveResult = calculatePveMatchResult(
             crypto.randomUUID(),
@@ -602,26 +672,20 @@ export const useGameStore = create<AppState>()(
           xpEarned = pveResult.xpEarned;
           winsEarned = pveResult.winsEarned;
 
-          // Calculate net result (payout - bet = profit/loss)
-          // Win: Get payout (180% of bet), so profit = payout - bet
-          // Loss: Get 0, so loss = -bet (but bet was already deducted when locked)
-          // Draw: Get bet back
-
           let netChange = 0;
           let description = '';
 
           if (result === 'win') {
-            netChange = coinsWon; // Full payout including original bet
+            netChange = coinsWon;
             description = `PvE Win: +${coinsWon} coins (180% of ${betAmount})`;
           } else if (result === 'loss') {
-            netChange = 0; // Bet is lost, nothing returned
+            netChange = 0;
             description = `PvE Loss: -${betAmount} coins`;
           } else {
-            netChange = betAmount; // Draw - return bet
+            netChange = betAmount;
             description = `PvE Draw: ${betAmount} coins returned`;
           }
 
-          // Add the net change to wallet
           const newBalance = updatedWallet.balance + netChange;
           const transaction = {
             id: crypto.randomUUID(),
@@ -689,15 +753,11 @@ export const useGameStore = create<AppState>()(
           };
         }
 
-        // Update streaks
         const updatedStreaks = updateStreakData(user.streaks, result);
-
-        // Update level progress
         const newTotalPveWins = user.totalPveWins + winsEarned;
         const levelProgress = calculateLevelProgress(newTotalPveWins);
         const levelUp = checkLevelUp(user.totalPveWins, newTotalPveWins);
 
-        // Level up reward
         if (levelUp.leveledUp) {
           for (let lvl = levelUp.oldLevel + 1; lvl <= levelUp.newLevel; lvl++) {
             const reward = getLevelUpReward(lvl);
@@ -711,7 +771,6 @@ export const useGameStore = create<AppState>()(
           }
         }
 
-        // Update season stats
         let updatedSeasonStats = user.currentSeasonStats;
         if (currentSeason && updatedSeasonStats) {
           updatedSeasonStats = updateSeasonStats(
@@ -732,11 +791,10 @@ export const useGameStore = create<AppState>()(
           );
         }
 
-        // Create history entry
         const difficultyName = activeMatch.difficulty ?
           activeMatch.difficulty.charAt(0).toUpperCase() + activeMatch.difficulty.slice(1) : '';
 
-        const newHistory: GameHistory = {
+        const newHistoryItem: GameHistory = {
           id: Date.now().toString(),
           opponent: activeMatch.type === 'pve' ?
             `Computer (${difficultyName})` :
@@ -753,8 +811,8 @@ export const useGameStore = create<AppState>()(
           difficulty: activeMatch.difficulty,
         };
 
-        return {
-          gameHistory: [newHistory, ...state.gameHistory].slice(0, 100),
+        set({
+          gameHistory: [newHistoryItem, ...state.gameHistory].slice(0, 100),
           user: {
             ...user,
             wallet: updatedWallet,
@@ -772,11 +830,17 @@ export const useGameStore = create<AppState>()(
             beginnerWins: activeMatch.difficulty === 'beginner' && result === 'win' ?
               user.beginnerWins + 1 : user.beginnerWins,
           },
-          currentGame: null,
-          gameMode: null,
-          activeMatch: null,
-        };
-      }),
+          currentGame: result === 'loss' ? state.currentGame : null,
+          gameMode: result === 'loss' ? state.gameMode : null,
+          activeMatch: result === 'loss' ? state.activeMatch : null,
+        });
+
+        if (get().settings.isPremium) {
+          get().syncToCloud();
+        }
+
+        return { coinsWon, xpEarned };
+      },
 
       addFriend: (friend) => set((state) => ({
         friends: [...state.friends, friend],
@@ -790,18 +854,98 @@ export const useGameStore = create<AppState>()(
         pendingInvites: [...state.pendingInvites, friendId],
       })),
 
-      updateSettings: (updates) => set((state) => ({
-        settings: { ...state.settings, ...updates },
+      updateFriendStatus: (id, online, lastSeen) => set((state) => ({
+        friends: state.friends.map(f => f.id === id ? { ...f, online, lastSeen } : f)
       })),
+
+      addChatMessage: (friendId, message) => set((state) => {
+        const roomMessages = state.chatRooms[friendId] || [];
+        if (roomMessages.find(m => m.id === message.id)) return state;
+        const newMessages = [...roomMessages, message].sort((a, b) =>
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+        return {
+          chatRooms: {
+            ...state.chatRooms,
+            [friendId]: newMessages
+          }
+        };
+      }),
+
+      addChallenge: (challenge) => set((state) => {
+        if (state.incomingChallenges.find(c => c.id === challenge.id)) return state;
+        return {
+          incomingChallenges: [challenge, ...state.incomingChallenges]
+        };
+      }),
+
+      respondToChallenge: async (challengeId, status) => {
+        const { error } = await supabase
+          .from('challenges')
+          .update({ status })
+          .eq('id', challengeId);
+
+        if (!error) {
+          set((state) => ({
+            incomingChallenges: state.incomingChallenges.filter(c => c.id !== challengeId)
+          }));
+        }
+      },
+
+      sendMessageAction: async (friendId, content) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { data, error } = await supabase
+          .from('messages')
+          .insert({
+            sender_id: user.id,
+            receiver_id: friendId,
+            content
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.error('[Store] Send message error:', error);
+          throw error;
+        }
+        if (data) {
+          get().addChatMessage(friendId, data);
+        }
+      },
+
+      sendChallengeAction: async (friendId) => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        const { error } = await supabase
+          .from('challenges')
+          .insert({
+            sender_id: user.id,
+            receiver_id: friendId,
+            status: 'pending'
+          });
+
+        if (error) {
+          console.error('[Store] Send challenge error:', error);
+        }
+      },
+
+      updateSettings: (updates) => {
+        set((state) => ({
+          settings: { ...state.settings, ...updates },
+        }));
+        if (get().settings.isPremium) {
+          get().syncToCloud();
+        }
+      },
 
       checkSeasonTransition: () => {
         const state = get();
         if (state.currentSeason && isSeasonEnded(state.currentSeason)) {
           const { newSeason } = transitionSeason(state.currentSeason);
-
-          // Archive current stats and create new ones
           const newSeasonStats = createSeasonStats(newSeason, state.user.id);
-
           set({
             currentSeason: newSeason,
             user: {
@@ -809,6 +953,9 @@ export const useGameStore = create<AppState>()(
               currentSeasonStats: newSeasonStats,
             }
           });
+          if (get().settings.isPremium) {
+            get().syncToCloud();
+          }
         }
       },
 
@@ -816,7 +963,6 @@ export const useGameStore = create<AppState>()(
         set((state) => {
           const currentWallet = state.user.wallet;
           const newBalance = currentWallet.balance + amount;
-
           const transaction = {
             id: crypto.randomUUID(),
             type,
@@ -825,7 +971,6 @@ export const useGameStore = create<AppState>()(
             timestamp: Date.now(),
             description,
           };
-
           return {
             user: {
               ...state.user,
@@ -838,6 +983,83 @@ export const useGameStore = create<AppState>()(
             },
           };
         });
+        if (get().settings.isPremium) {
+          get().syncToCloud();
+        }
+      },
+
+      syncToCloud: async () => {
+        const state = get();
+        if (!state.settings.isPremium) return;
+
+        const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+        if (!supabaseUser) return;
+
+        try {
+          await pushPlayerSnapshot({
+            user_id: supabaseUser.id,
+            updated_at: new Date().toISOString(),
+            profile_data: state.user,
+            wallet_data: state.user.wallet,
+            settings_data: state.settings,
+            history_data: state.gameHistory,
+          });
+
+          // Also update profile table specifically for discovery
+          await supabase.from('profiles').upsert({
+            id: supabaseUser.id,
+            username: state.user.email || state.user.name,
+            name: state.user.name,
+            phone_number: state.user.phoneNumber,
+            avatar_url: state.user.avatar,
+            level: state.user.level,
+            rank: state.user.rank,
+            country_code: state.user.country.code,
+            country_name: state.user.country.name,
+            country_flag: state.user.country.flag,
+            last_online: new Date().toISOString()
+          });
+
+          console.log('[Store] Cloud sync successful');
+        } catch (error) {
+          console.error('[Store] Cloud sync failed:', error);
+        }
+      },
+
+      syncContactsAction: async () => {
+        const { data: { user: supabaseUser } } = await supabase.auth.getUser();
+        if (!supabaseUser) return;
+
+        try {
+          const { syncContacts } = await import('@/systems/contacts');
+          const { matchingUsers } = await syncContacts(supabaseUser.id);
+
+          const newFriends: Friend[] = matchingUsers.map(u => ({
+            id: u.id,
+            name: u.name || 'Chess player',
+            avatar: u.avatar_url || '👤',
+            online: false, // Will be updated by presence later
+            level: u.level || 1,
+            rank: u.rank || 'Pawn',
+            country: {
+              code: u.country_code || 'US',
+              name: u.country_name || 'United States',
+              flag: u.country_flag || '🇺🇸'
+            }
+          }));
+
+          // Merge with existing friends
+          set((state) => {
+            const existingIds = new Set(state.friends.map(f => f.id));
+            const uniqueNewFriends = newFriends.filter(f => !existingIds.has(f.id));
+            return {
+              friends: [...state.friends, ...uniqueNewFriends]
+            };
+          });
+
+        } catch (error) {
+          console.error('[Store] Contact sync failed:', error);
+        }
       },
     }),
     {

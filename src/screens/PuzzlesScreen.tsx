@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ChevronLeft, Zap, Trophy, Lock, Check, 
+import {
+  ChevronLeft, Zap, Trophy, Lock, Check,
   Lightbulb, Star, Gift, Target, Flame, X, RotateCcw
 } from 'lucide-react';
 import { MobileLayout } from '@/components/MobileLayout';
@@ -53,7 +53,7 @@ const parseFEN = (fen: string): BoardPosition => {
   const board: BoardPosition = {};
   const [position] = fen.split(' ');
   const rows = position.split('/');
-  
+
   rows.forEach((row, rowIndex) => {
     let colIndex = 0;
     for (const char of row) {
@@ -67,7 +67,7 @@ const parseFEN = (fen: string): BoardPosition => {
       }
     }
   });
-  
+
   return board;
 };
 
@@ -86,7 +86,7 @@ const parseMove = (move: string, board: BoardPosition, isWhite: boolean): { from
   // Clean the move string
   let cleanMove = move.replace(/[+#!?]/g, '');
   let promotion: string | undefined;
-  
+
   // Check for promotion
   if (cleanMove.includes('=')) {
     const parts = cleanMove.split('=');
@@ -107,7 +107,7 @@ const parseMove = (move: string, board: BoardPosition, isWhite: boolean): { from
 
   // Find the piece that can make this move
   const targetPiece = isWhite ? pieceType : pieceType.toLowerCase();
-  
+
   for (const [square, piece] of Object.entries(board)) {
     if (piece === targetPiece) {
       // Simple validation - check if piece could theoretically move there
@@ -116,7 +116,7 @@ const parseMove = (move: string, board: BoardPosition, isWhite: boolean): { from
       const fromRank = parseInt(square[1]);
       const toFile = to[0];
       const toRank = parseInt(to[1]);
-      
+
       // Check disambiguation
       if (cleanMove.length > 3 && pieceType !== 'P') {
         const disambig = cleanMove.substring(1, cleanMove.length - 2).replace('x', '');
@@ -125,7 +125,7 @@ const parseMove = (move: string, board: BoardPosition, isWhite: boolean): { from
           if (/[1-8]/.test(disambig) && fromRank !== parseInt(disambig)) continue;
         }
       }
-      
+
       // Pawn moves
       if (pieceType === 'P') {
         // Pawn captures include file
@@ -136,7 +136,7 @@ const parseMove = (move: string, board: BoardPosition, isWhite: boolean): { from
         const direction = isWhite ? 1 : -1;
         const fileDiff = Math.abs(toFile.charCodeAt(0) - fromFile.charCodeAt(0));
         const rankDiff = toRank - fromRank;
-        
+
         if (fileDiff === 0 && (rankDiff === direction || (rankDiff === 2 * direction && (fromRank === 2 || fromRank === 7)))) {
           return { from: square, to, promotion };
         }
@@ -145,11 +145,11 @@ const parseMove = (move: string, board: BoardPosition, isWhite: boolean): { from
         }
         continue;
       }
-      
+
       // Other pieces - simple validation
       const fileDiff = Math.abs(toFile.charCodeAt(0) - fromFile.charCodeAt(0));
       const rankDiff = Math.abs(toRank - fromRank);
-      
+
       if (pieceType === 'N') {
         if ((fileDiff === 2 && rankDiff === 1) || (fileDiff === 1 && rankDiff === 2)) {
           return { from: square, to, promotion };
@@ -173,7 +173,7 @@ const parseMove = (move: string, board: BoardPosition, isWhite: boolean): { from
       }
     }
   }
-  
+
   return null;
 };
 
@@ -181,16 +181,16 @@ const parseMove = (move: string, board: BoardPosition, isWhite: boolean): { from
 const makeMove = (board: BoardPosition, from: string, to: string, promotion?: string): BoardPosition => {
   const newBoard = { ...board };
   const piece = newBoard[from];
-  
+
   // Handle promotion
   if (promotion && (piece === 'P' || piece === 'p')) {
     newBoard[to] = piece === 'P' ? promotion.toUpperCase() : promotion.toLowerCase();
   } else {
     newBoard[to] = piece;
   }
-  
+
   delete newBoard[from];
-  
+
   // Handle castling
   if ((piece === 'K' || piece === 'k') && Math.abs(to.charCodeAt(0) - from.charCodeAt(0)) === 2) {
     const rank = from[1];
@@ -204,13 +204,13 @@ const makeMove = (board: BoardPosition, from: string, to: string, promotion?: st
       delete newBoard[`a${rank}`];
     }
   }
-  
+
   // Handle en passant
   if ((piece === 'P' || piece === 'p') && from[0] !== to[0] && !board[to]) {
     const captureRank = piece === 'P' ? parseInt(to[1]) - 1 : parseInt(to[1]) + 1;
     delete newBoard[`${to[0]}${captureRank}`];
   }
-  
+
   return newBoard;
 };
 
@@ -233,7 +233,7 @@ export const PuzzlesScreen: React.FC = () => {
     playerTurn: true,
     message: ''
   });
-  
+
   // Puzzle Rush state
   const [rushState, setRushState] = useState({
     puzzles: [] as ChessPuzzle[],
@@ -243,20 +243,20 @@ export const PuzzlesScreen: React.FC = () => {
     isActive: false,
     difficulty: 'easy' as 'easy' | 'medium' | 'hard'
   });
-  
+
   // Mate puzzles state
   const [mateType, setMateType] = useState<1 | 2 | 3 | 4>(1);
-  const [, setSelectedSet] = useState<string | null>(null);
-  
+  const [selectedSet, setSelectedSet] = useState<string | null>(null);
+
   // Daily puzzle tracking
   const [dailyCompleted, setDailyCompleted] = useState(false);
-  
+
   useEffect(() => {
     const lastDaily = localStorage.getItem('lastDailyPuzzle');
     const today = new Date().toDateString();
     setDailyCompleted(lastDaily === today);
   }, []);
-  
+
   // Timer for Puzzle Rush
   useEffect(() => {
     if (rushState.isActive && rushState.timeLeft > 0) {
@@ -275,11 +275,11 @@ export const PuzzlesScreen: React.FC = () => {
   // Initialize puzzle board
   const initializePuzzle = useCallback((puzzle: ChessPuzzle, isRush: boolean = false) => {
     const board = parseFEN(puzzle.fen);
-    
+
     // Determine who moves first from FEN
     const fenParts = puzzle.fen.split(' ');
     const isWhiteToMove = fenParts[1] === 'w';
-    
+
     setPuzzleState({
       puzzle,
       currentMoveIndex: 0,
@@ -296,13 +296,13 @@ export const PuzzlesScreen: React.FC = () => {
       message: isWhiteToMove ? 'White to move' : 'Black to move'
     });
   }, []);
-  
+
   const startDailyPuzzle = () => {
     const puzzle = getDailyPuzzle();
     initializePuzzle(puzzle);
     setMode('daily');
   };
-  
+
   const startPuzzleRush = (difficulty: 'easy' | 'medium' | 'hard') => {
     const puzzles = getPuzzleRushPuzzles(difficulty, 20);
     setRushState({
@@ -318,7 +318,7 @@ export const PuzzlesScreen: React.FC = () => {
     }
     setMode('rush');
   };
-  
+
   const endPuzzleRush = () => {
     setRushState(prev => ({ ...prev, isActive: false }));
     const reward = rushState.score * 10;
@@ -326,12 +326,12 @@ export const PuzzlesScreen: React.FC = () => {
       addTransaction(reward, 'puzzle_reward', `Puzzle Rush: ${rushState.score} solved`);
     }
   };
-  
+
   const startMatePuzzles = (type: 1 | 2 | 3 | 4) => {
     setMateType(type);
     setMode('mate');
   };
-  
+
   const startPuzzle = (puzzle: ChessPuzzle) => {
     initializePuzzle(puzzle);
     setMode('playing');
@@ -340,44 +340,44 @@ export const PuzzlesScreen: React.FC = () => {
   // Handle square click
   const handleSquareClick = (square: string) => {
     if (puzzleState.solved || puzzleState.failed || !puzzleState.playerTurn) return;
-    
+
     const { board, selectedSquare, puzzle, currentMoveIndex } = puzzleState;
-    
+
     if (!puzzle) return;
-    
+
     // If clicking on own piece, select it
     const piece = board[square];
     const fenParts = puzzle.fen.split(' ');
     const isWhiteToMove = fenParts[1] === 'w';
     const isOwnPiece = piece && (isWhiteToMove ? piece === piece.toUpperCase() : piece === piece.toLowerCase());
-    
+
     if (!selectedSquare && isOwnPiece) {
       setPuzzleState(prev => ({ ...prev, selectedSquare: square, message: 'Select target square' }));
       return;
     }
-    
+
     if (selectedSquare) {
       if (selectedSquare === square) {
         // Deselect
         setPuzzleState(prev => ({ ...prev, selectedSquare: null, message: isWhiteToMove ? 'White to move' : 'Black to move' }));
         return;
       }
-      
+
       if (isOwnPiece) {
         // Select different piece
         setPuzzleState(prev => ({ ...prev, selectedSquare: square }));
         return;
       }
-      
+
       // Try to make move
       const expectedMove = puzzle.solution[currentMoveIndex];
       const expectedParsed = parseMove(expectedMove, board, isWhiteToMove);
-      
+
       if (expectedParsed && expectedParsed.from === selectedSquare && expectedParsed.to === square) {
         // Correct move!
         const newBoard = makeMove(board, selectedSquare, square, expectedParsed.promotion);
         const nextMoveIndex = currentMoveIndex + 1;
-        
+
         if (nextMoveIndex >= puzzle.solution.length) {
           // Puzzle solved!
           setPuzzleState(prev => ({
@@ -389,7 +389,7 @@ export const PuzzlesScreen: React.FC = () => {
             solved: true,
             message: '🎉 Correct! Puzzle solved!'
           }));
-          
+
           // Award coins
           if (mode === 'daily' && !dailyCompleted) {
             localStorage.setItem('lastDailyPuzzle', new Date().toDateString());
@@ -424,16 +424,16 @@ export const PuzzlesScreen: React.FC = () => {
             playerTurn: false,
             message: '✓ Correct! Opponent moving...'
           }));
-          
+
           // Computer makes next move after delay
           setTimeout(() => {
             const computerMove = puzzle.solution[nextMoveIndex];
             const computerParsed = parseMove(computerMove, newBoard, !isWhiteToMove);
-            
+
             if (computerParsed) {
               const afterComputerBoard = makeMove(newBoard, computerParsed.from, computerParsed.to, computerParsed.promotion);
               const afterComputerMoveIndex = nextMoveIndex + 1;
-              
+
               if (afterComputerMoveIndex >= puzzle.solution.length) {
                 setPuzzleState(prev => ({
                   ...prev,
@@ -472,14 +472,14 @@ export const PuzzlesScreen: React.FC = () => {
   // Use hint
   const useHint = () => {
     if (puzzleState.hintsUsed >= puzzleState.maxHints || !puzzleState.puzzle || puzzleState.solved || puzzleState.failed) return;
-    
+
     const { puzzle, currentMoveIndex, board } = puzzleState;
     const fenParts = puzzle.fen.split(' ');
     const isWhiteToMove = fenParts[1] === 'w';
-    
+
     const nextMove = puzzle.solution[currentMoveIndex];
     const parsed = parseMove(nextMove, board, isWhiteToMove);
-    
+
     if (parsed) {
       setPuzzleState(prev => ({
         ...prev,
@@ -487,7 +487,7 @@ export const PuzzlesScreen: React.FC = () => {
         highlightedSquare: parsed.from,
         message: `Hint: Move the piece on ${parsed.from}`
       }));
-      
+
       // Clear hint after 3 seconds
       setTimeout(() => {
         setPuzzleState(prev => ({
@@ -504,7 +504,7 @@ export const PuzzlesScreen: React.FC = () => {
       initializePuzzle(puzzleState.puzzle, mode === 'rush');
     }
   };
-  
+
   const getMateInfo = (type: 1 | 2 | 3 | 4) => {
     const puzzleMap = {
       1: mateIn1Puzzles,
@@ -516,25 +516,25 @@ export const PuzzlesScreen: React.FC = () => {
     const { available, locked } = getPuzzlesByType(`mate_in_${type}` as ChessPuzzle['type'], user.level);
     const requiredLevel = type === 1 ? 1 : type === 2 ? 10 : type === 3 ? 20 : 40;
     const isLocked = user.level < requiredLevel;
-    
+
     return { puzzles, available, locked, requiredLevel, isLocked };
   };
-  
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
-  
+
   const renderPuzzleBoard = () => {
     if (!puzzleState.puzzle) return null;
-    
+
     const { board, selectedSquare, highlightedSquare, lastMove, solved, failed, message } = puzzleState;
-    
+
     return (
       <div className="relative">
         {/* Message Bar */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           className={cn(
@@ -548,7 +548,7 @@ export const PuzzlesScreen: React.FC = () => {
         </motion.div>
 
         {/* Puzzle Board */}
-        <motion.div 
+        <motion.div
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           className="glass rounded-2xl p-3 border border-white/10"
@@ -565,7 +565,7 @@ export const PuzzlesScreen: React.FC = () => {
               const isSelected = selectedSquare === square;
               const isHighlighted = highlightedSquare === square;
               const isLastMove = lastMove && (lastMove.from === square || lastMove.to === square);
-              
+
               return (
                 <motion.div
                   key={square}
@@ -592,9 +592,9 @@ export const PuzzlesScreen: React.FC = () => {
             })}
           </div>
         </motion.div>
-        
+
         {/* Puzzle Info Card */}
-        <motion.div 
+        <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1 }}
@@ -615,7 +615,7 @@ export const PuzzlesScreen: React.FC = () => {
               {puzzleState.puzzle.difficulty}
             </div>
           </div>
-          
+
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1.5">
               <Star size={14} className="text-amber-400" />
@@ -627,7 +627,7 @@ export const PuzzlesScreen: React.FC = () => {
             </div>
           </div>
         </motion.div>
-        
+
         {/* Controls */}
         <div className="flex gap-3 mt-4">
           <motion.button
@@ -638,14 +638,14 @@ export const PuzzlesScreen: React.FC = () => {
               "flex-1 py-3.5 rounded-xl font-medium flex items-center justify-center gap-2",
               "glass border border-white/10",
               puzzleState.hintsUsed < puzzleState.maxHints && !solved
-                ? "text-amber-400 hover:bg-white/5" 
+                ? "text-amber-400 hover:bg-white/5"
                 : "text-white/30 cursor-not-allowed"
             )}
           >
             <Lightbulb size={18} />
             Hint ({puzzleState.maxHints - puzzleState.hintsUsed})
           </motion.button>
-          
+
           {failed && (
             <motion.button
               initial={{ scale: 0 }}
@@ -660,7 +660,7 @@ export const PuzzlesScreen: React.FC = () => {
             </motion.button>
           )}
         </div>
-        
+
         {/* Solved Overlay */}
         <AnimatePresence>
           {solved && (
@@ -702,7 +702,7 @@ export const PuzzlesScreen: React.FC = () => {
       </div>
     );
   };
-  
+
   const renderMenu = () => (
     <div className="space-y-4">
       {/* Daily Puzzle */}
@@ -715,8 +715,8 @@ export const PuzzlesScreen: React.FC = () => {
         disabled={dailyCompleted}
         className={cn(
           "w-full p-4 rounded-2xl flex items-center gap-4 relative overflow-hidden",
-          dailyCompleted 
-            ? "glass opacity-60" 
+          dailyCompleted
+            ? "glass opacity-60"
             : "bg-gradient-to-r from-amber-500 via-orange-500 to-red-500 shadow-lg shadow-amber-500/25"
         )}
       >
@@ -746,7 +746,7 @@ export const PuzzlesScreen: React.FC = () => {
           )}
         </div>
       </motion.button>
-      
+
       {/* Puzzle Rush */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -787,7 +787,7 @@ export const PuzzlesScreen: React.FC = () => {
           ))}
         </div>
       </motion.div>
-      
+
       {/* Puzzle Sets */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -818,8 +818,8 @@ export const PuzzlesScreen: React.FC = () => {
                 disabled={isLocked}
                 className={cn(
                   "w-full p-3 rounded-xl flex items-center justify-between transition-all",
-                  isLocked 
-                    ? "bg-white/5 opacity-50" 
+                  isLocked
+                    ? "bg-white/5 opacity-50"
                     : "bg-white/10 hover:bg-white/15"
                 )}
               >
@@ -844,7 +844,7 @@ export const PuzzlesScreen: React.FC = () => {
           })}
         </div>
       </motion.div>
-      
+
       {/* Mate In X */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -866,7 +866,7 @@ export const PuzzlesScreen: React.FC = () => {
               'from-purple-500 to-violet-600',
               'from-red-500 to-rose-600'
             ];
-            
+
             return (
               <motion.button
                 key={num}
@@ -876,8 +876,8 @@ export const PuzzlesScreen: React.FC = () => {
                 disabled={info.isLocked}
                 className={cn(
                   "p-4 rounded-xl text-center relative overflow-hidden",
-                  info.isLocked 
-                    ? "bg-white/5 opacity-50" 
+                  info.isLocked
+                    ? "bg-white/5 opacity-50"
                     : `bg-gradient-to-br ${colors[num - 1]} shadow-lg`
                 )}
               >
@@ -890,8 +890,8 @@ export const PuzzlesScreen: React.FC = () => {
                   </div>
                   <div className="font-bold text-white">Mate in {num}</div>
                   <div className="text-xs text-white/70 mt-1">
-                    {info.isLocked 
-                      ? `Unlock at Lvl ${info.requiredLevel}` 
+                    {info.isLocked
+                      ? `Unlock at Lvl ${info.requiredLevel}`
                       : `${info.available.length} puzzles`
                     }
                   </div>
@@ -901,7 +901,7 @@ export const PuzzlesScreen: React.FC = () => {
           })}
         </div>
       </motion.div>
-      
+
       {/* Stats */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -932,10 +932,10 @@ export const PuzzlesScreen: React.FC = () => {
       </motion.div>
     </div>
   );
-  
+
   const renderMatePuzzles = () => {
     const info = getMateInfo(mateType);
-    
+
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between mb-4">
@@ -949,7 +949,7 @@ export const PuzzlesScreen: React.FC = () => {
             Back
           </motion.button>
         </div>
-        
+
         {/* Available Puzzles */}
         <div className="space-y-2">
           <h3 className="text-sm font-medium text-white/70 px-1">
@@ -980,7 +980,7 @@ export const PuzzlesScreen: React.FC = () => {
             </motion.button>
           ))}
         </div>
-        
+
         {/* Locked Puzzles */}
         {info.locked.length > 0 && (
           <div className="space-y-2 mt-6">
@@ -1009,7 +1009,81 @@ export const PuzzlesScreen: React.FC = () => {
       </div>
     );
   };
-  
+
+  const renderSetPuzzles = () => {
+    const set = puzzleSets.find(s => s.id === selectedSet);
+    if (!set) return null;
+
+    // Get puzzles belonging to this set
+    const puzzles = getPuzzlesByType(set.id as any, user.level);
+
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-bold text-white">{set.name}</h2>
+            <p className="text-xs text-white/50">{set.description}</p>
+          </div>
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              setSelectedSet(null);
+              setMode('menu');
+            }}
+            className="px-4 py-2 rounded-xl glass text-sm text-white/70 flex items-center gap-2"
+          >
+            <ChevronLeft size={16} />
+            Back
+          </motion.button>
+        </div>
+
+        <div className="space-y-2">
+          {puzzles.available.map((puzzle, index) => (
+            <motion.button
+              key={puzzle.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: index * 0.05 }}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                setMode('playing');
+                initializePuzzle(puzzle);
+              }}
+              className="w-full glass rounded-xl p-4 flex items-center gap-4 border border-white/10"
+            >
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-2xl">
+                {puzzle.type === 'endgame' ? '♟️' : '🧩'}
+              </div>
+              <div className="flex-1 text-left">
+                <h4 className="font-medium text-white">{puzzle.title}</h4>
+                <p className="text-xs text-white/50">{puzzle.difficulty} • {puzzle.solution.length} moves</p>
+              </div>
+              <div className="text-right">
+                <div className="text-amber-400 font-bold">{puzzle.rating}</div>
+              </div>
+            </motion.button>
+          ))}
+
+          {puzzles.locked.map((puzzle) => (
+            <div
+              key={puzzle.id}
+              className="w-full glass rounded-xl p-4 opacity-50 flex items-center gap-4 border border-white/5"
+            >
+              <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center">
+                <Lock size={18} className="text-white/30" />
+              </div>
+              <div className="flex-1 text-left">
+                <h4 className="font-medium text-white/70">{puzzle.title}</h4>
+                <p className="text-xs text-white/30">Unlock at Level {puzzle.requiredLevel}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   const renderPuzzleRush = () => (
     <div className="space-y-4">
       {/* Timer and Score */}
@@ -1042,7 +1116,7 @@ export const PuzzlesScreen: React.FC = () => {
           </div>
         </div>
       </motion.div>
-      
+
       {/* Puzzle Board or Results */}
       {rushState.isActive ? renderPuzzleBoard() : (
         <motion.div
@@ -1073,7 +1147,7 @@ export const PuzzlesScreen: React.FC = () => {
           </motion.button>
         </motion.div>
       )}
-      
+
       {/* Quit Button */}
       {rushState.isActive && (
         <motion.button
@@ -1090,7 +1164,7 @@ export const PuzzlesScreen: React.FC = () => {
       )}
     </div>
   );
-  
+
   return (
     <MobileLayout
       title="Puzzles"
@@ -1103,6 +1177,7 @@ export const PuzzlesScreen: React.FC = () => {
         {mode === 'rush' && renderPuzzleRush()}
         {mode === 'mate' && renderMatePuzzles()}
         {mode === 'playing' && renderPuzzleBoard()}
+        {selectedSet && renderSetPuzzles()}
       </div>
     </MobileLayout>
   );

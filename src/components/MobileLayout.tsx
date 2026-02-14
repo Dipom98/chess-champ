@@ -89,7 +89,6 @@ export function MobileLayout({
               const isActive = location.pathname === tab.path ||
                 (tab.path === '/home' && location.pathname === '/') ||
                 (tab.path === '/play' && location.pathname === '/game');
-              const Icon = tab.icon;
               return (
                 <motion.button
                   key={tab.path}

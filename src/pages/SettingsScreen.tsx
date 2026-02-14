@@ -5,16 +5,16 @@ import {
   Bell, Volume2, Smartphone, Eye, Crown,
   Palette, Moon, HelpCircle, ChevronRight,
   Check, X, Mail, Globe, User, Trash2, Star, Lock,
-  Camera, Image, FileText, Shield, Headphones
+  Camera, Image, FileText, Shield, Headphones, Users
 } from 'lucide-react';
 import { NativePurchases } from '@capgo/native-purchases';
 import { MobileLayout } from '@/components/MobileLayout';
-import { useGameStore, BOARD_THEMES } from '@/store/gameStore';
+import { BoardTheme, useGameStore, BOARD_THEMES } from '@/store/gameStore';
+import { supabase } from '@/systems/supabase';
 import { cn } from '@/utils/cn';
 import { COUNTRIES, DEFAULT_AVATARS } from '@/systems/countries';
 import { Gender, Country } from '@/systems/types';
 import { RANKS } from '@/systems/progression';
-import { BoardTheme } from '@/store/gameStore';
 
 export function SettingsScreen() {
   const navigate = useNavigate();
@@ -27,6 +27,7 @@ export function SettingsScreen() {
   const [editGender, setEditGender] = useState<Gender>(user.gender);
   const [editCountry, setEditCountry] = useState<Country>(user.country);
   const [editAvatar, setEditAvatar] = useState(user.avatar);
+  const [editPhone, setEditPhone] = useState(user.phoneNumber || '');
   const [editProfilePicture, setEditProfilePicture] = useState<string | null>(user.customProfilePicture || null);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
   const [showPremiumThemeAlert, setShowPremiumThemeAlert] = useState(false);
@@ -34,22 +35,142 @@ export function SettingsScreen() {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showSupport, setShowSupport] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [supabaseUser, setSupabaseUser] = useState<any>(null);
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleProfilePictureUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Check file size (max 2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        alert('Image size must be less than 2MB');
-        return;
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }: { data: { user: any } }) => {
+      setSupabaseUser(user);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+      setSupabaseUser(session?.user ?? null);
+      if (session?.user && settings.isPremium) {
+        useGameStore.getState().syncToCloud();
       }
+    });
 
+    return () => subscription.unsubscribe();
+  }, [settings.isPremium]);
+
+  const handleAuth = async () => {
+    if (!authEmail || !authPassword) {
+      alert('Please enter both email and password');
+      return;
+    }
+
+    setIsAuthLoading(true);
+    try {
+      if (authMode === 'login') {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: authEmail,
+          password: authPassword,
+        });
+        if (error) throw error;
+
+        // Immediate sync if successful and premium
+        if (data.user && settings.isPremium) {
+          await useGameStore.getState().syncToCloud();
+        }
+      } else {
+        const { data, error } = await supabase.auth.signUp({
+          email: authEmail,
+          password: authPassword,
+          options: {
+            data: {
+              name: user.name,
+              avatar_url: user.avatar
+            }
+          }
+        });
+        if (error) throw error;
+
+        if (data.user) {
+          // If auto-logged in (no email confirm), sync immediately
+          if (data.session && settings.isPremium) {
+            await useGameStore.getState().syncToCloud();
+          }
+          alert(data.session ? 'Account created and synced!' : 'Check your email for confirmation!');
+        }
+      }
+      setShowAuthModal(false);
+    } catch (error: any) {
+      alert(error.message || 'Authentication failed');
+      console.error('[Auth Error]', error);
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
+
+  const handleProfilePictureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check file size (max 5MB for processing, though we'll compress it)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size must be less than 5MB');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
       const reader = new FileReader();
-      reader.onloadend = () => {
+      reader.onloadend = async () => {
         const base64String = reader.result as string;
+
+        // Always set local preview first
         setEditProfilePicture(base64String);
+
+        // If logged in, attempt to upload to Supabase Storage
+        if (supabaseUser) {
+          try {
+            const fileName = `${supabaseUser.id}-${Date.now()}.png`;
+            const base64Data = base64String.split(',')[1];
+            const byteCharacters = atob(base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteNumbers[i] = byteCharacters.charCodeAt(i);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            const blob = new Blob([byteArray], { type: 'image/png' });
+
+            // Try to upload to 'avatars' bucket
+            const { data, error } = await supabase.storage
+              .from('avatars')
+              .upload(fileName, blob, {
+                contentType: 'image/png',
+                upsert: true
+              });
+
+            if (error) {
+              console.warn('[Supabase] Storage upload failed, keeping as base64:', error.message);
+            } else {
+              const { data: { publicUrl } } = supabase.storage
+                .from('avatars')
+                .getPublicUrl(data.path);
+
+              setEditProfilePicture(publicUrl);
+              console.log('[Supabase] Image uploaded successfully:', publicUrl);
+            }
+          } catch (uploadErr: any) {
+            console.warn('[Supabase] Upload process failed:', uploadErr.message);
+          }
+        }
       };
       reader.readAsDataURL(file);
+    } catch (err: any) {
+      alert('Failed to process image: ' + err.message);
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -80,7 +201,10 @@ export function SettingsScreen() {
 
   const handleSaveProfile = () => {
     updateProfile(editName, editEmail, editGender, editCountry, editAvatar);
-    updateUser({ customProfilePicture: editProfilePicture });
+    updateUser({
+      customProfilePicture: editProfilePicture,
+      phoneNumber: editPhone
+    });
     setShowEditProfile(false);
   };
 
@@ -107,7 +231,7 @@ export function SettingsScreen() {
       // Initiate native purchase
       await NativePurchases.purchaseProduct({
         productIdentifier: 'chess_champ_premium',
-        productType: 'subs'
+        productType: 'SUBSCRIPTION' as any
       });
 
       // Simulate local success - in production you'd verify the receipt/entitlement
@@ -122,7 +246,6 @@ export function SettingsScreen() {
 
   const handleRestorePurchases = async () => {
     try {
-      const info = await NativePurchases.getCustomerInfo();
       // Logic would go here to check if 'premium' is in active entitlements
       alert('Purchases restored (simulated). Check your Play Store account if nothing changed.');
     } catch (e) {
@@ -469,6 +592,16 @@ export function SettingsScreen() {
               value={settings.vibrationEnabled}
               onChange={(v) => updateSettings({ vibrationEnabled: v })}
             />
+            <SettingToggle
+              icon={Users}
+              label="Sync Contacts"
+              description="Find friends by phone number"
+              value={settings.contactSyncEnabled}
+              onChange={(v) => {
+                updateSettings({ contactSyncEnabled: v });
+                if (v) useGameStore.getState().syncContactsAction();
+              }}
+            />
           </div>
         </motion.div>
 
@@ -525,6 +658,55 @@ export function SettingsScreen() {
             />
           </div>
         </motion.div>
+        {/* Cloud Backup (Available to Premium) */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.23 }}
+        >
+          <h3 className="text-white/40 text-xs font-medium uppercase tracking-widest mb-3 px-1 flex items-center gap-2">
+            Cloud Backup
+            {!settings.isPremium && (
+              <span className="bg-amber-400/10 text-amber-400 px-1.5 py-0.5 rounded text-[10px] flex items-center gap-1">
+                <Crown size={10} />
+                Premium
+              </span>
+            )}
+          </h3>
+          <div className="glass rounded-2xl px-4">
+            {supabaseUser ? (
+              <div className="flex items-center gap-4 py-4">
+                <div className="w-11 h-11 bg-green-500/20 rounded-xl flex items-center justify-center">
+                  <Check size={20} className="text-green-400" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-white font-medium">Cloud Sync Active</p>
+                  <p className="text-white/40 text-xs truncate">{supabaseUser.email}</p>
+                </div>
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleLogout}
+                  className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-white/70 text-xs font-medium transition-colors"
+                >
+                  Logout
+                </motion.button>
+              </div>
+            ) : (
+              <SettingLink
+                icon={Globe}
+                label="Enable Cloud Sync"
+                value={settings.isPremium ? "Safe & Secure" : "Premium Feature"}
+                onClick={() => {
+                  if (!settings.isPremium) {
+                    setShowSubscription(true);
+                  } else {
+                    setShowAuthModal(true);
+                  }
+                }}
+              />
+            )}
+          </div>
+        </motion.div>
 
         {/* Danger Zone */}
         <motion.div
@@ -545,14 +727,13 @@ export function SettingsScreen() {
           </div>
         </motion.div>
 
-        {/* Version */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
           className="text-center text-white/20 text-xs py-6"
         >
-          Chess Champ v1.0.8 • Made by Dipom Dutta ♟️
+          Chess Champ v1.0.7 • Made by Dipom Dutta ♟️
         </motion.p>
       </div>
 
@@ -617,13 +798,18 @@ export function SettingsScreen() {
                     />
                     <motion.button
                       whileTap={{ scale: 0.95 }}
+                      disabled={isUploading}
                       onClick={() => fileInputRef.current?.click()}
-                      className="w-full py-2.5 px-4 bg-gradient-to-r from-amber-400 to-orange-500 rounded-xl text-white font-medium flex items-center justify-center gap-2 text-sm"
+                      className="w-full py-2.5 px-4 bg-gradient-to-r from-amber-400 to-orange-500 rounded-xl text-white font-medium flex items-center justify-center gap-2 text-sm disabled:opacity-50"
                     >
-                      <Image size={16} />
-                      Upload Photo
+                      {isUploading ? (
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <Image size={16} />
+                      )}
+                      {isUploading ? 'Uploading...' : 'Upload Photo'}
                     </motion.button>
-                    <p className="text-white/30 text-xs text-center">Max 2MB • JPG, PNG</p>
+                    <p className="text-white/30 text-[10px] text-center">Max 5MB • Auto-optimized</p>
                   </div>
                 </div>
               </div>
@@ -725,6 +911,24 @@ export function SettingsScreen() {
                   </div>
                   <ChevronRight size={18} className="text-white/40" />
                 </motion.button>
+              </div>
+
+              {/* Mobile Number Input */}
+              <div className="mt-2">
+                <p className="text-white/50 text-xs uppercase tracking-wider mb-2 flex items-center gap-2">
+                  <Smartphone size={12} />
+                  Mobile Number
+                </p>
+                <input
+                  type="tel"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  className="w-full px-4 py-3 glass rounded-xl text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-amber-400/50 transition-all font-mono"
+                  placeholder="e.g. +1234567890"
+                />
+                <p className="text-white/20 text-[10px] mt-1.5 px-1 leading-relaxed">
+                  Visible to friends who have your number saved in their device contacts.
+                </p>
               </div>
 
               {/* Buttons */}
@@ -1338,6 +1542,85 @@ export function SettingsScreen() {
               >
                 I Understand
               </motion.button>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {showAuthModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[70] p-4"
+            onClick={() => setShowAuthModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 50 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 50 }}
+              onClick={(e) => e.stopPropagation()}
+              className="glass rounded-3xl p-6 w-full max-w-sm space-y-6 border border-white/10"
+            >
+              <div className="text-center space-y-2">
+                <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-amber-500/20">
+                  <Globe size={32} className="text-white" />
+                </div>
+                <h2 className="text-2xl font-bold text-white">Cloud Backup</h2>
+                <p className="text-white/40 text-sm">
+                  {authMode === 'login'
+                    ? 'Sync your progress across all devices.'
+                    : 'Create a premium backup account.'}
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <p className="text-white/50 text-[10px] uppercase tracking-wider ml-1">Email</p>
+                  <input
+                    type="email"
+                    value={authEmail}
+                    onChange={(e) => setAuthEmail(e.target.value)}
+                    className="w-full px-4 py-3 glass rounded-xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+                    placeholder="name@example.com"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-white/50 text-[10px] uppercase tracking-wider ml-1">Password</p>
+                  <input
+                    type="password"
+                    value={authPassword}
+                    onChange={(e) => setAuthPassword(e.target.value)}
+                    className="w-full px-4 py-3 glass rounded-xl text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
+                    placeholder="Min 6 characters"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  disabled={isAuthLoading}
+                  onClick={handleAuth}
+                  className="w-full py-4 bg-gradient-to-r from-amber-400 to-orange-500 rounded-xl text-white font-bold shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 group"
+                >
+                  {isAuthLoading ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <span>{authMode === 'login' ? 'Login' : 'Sign Up'}</span>
+                      <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                    </>
+                  )}
+                </motion.button>
+
+                <button
+                  onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')}
+                  className="w-full text-white/40 text-sm hover:text-white/60 transition-colors"
+                >
+                  {authMode === 'login' ? "Don't have an account? Sign Up" : "Already have an account? Login"}
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}

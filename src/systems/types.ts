@@ -3,8 +3,8 @@
 // ============================================
 
 // ---- LEVEL & RANK SYSTEM ----
-export type RankName = 
-  | 'Pawn' | 'Knight' | 'Bishop' | 'Rook' | 'Squire' 
+export type RankName =
+  | 'Pawn' | 'Knight' | 'Bishop' | 'Rook' | 'Squire'
   | 'Champion' | 'Elite' | 'Master' | 'Grandmaster' | 'Legend';
 
 export interface RankInfo {
@@ -28,15 +28,15 @@ export interface LevelProgress {
 }
 
 // ---- COIN ECONOMY ----
-export type TransactionType = 
-  | 'level_up_reward' 
-  | 'gift_reward' 
-  | 'pve_bet' 
-  | 'pve_win' 
+export type TransactionType =
+  | 'level_up_reward'
+  | 'gift_reward'
+  | 'pve_bet'
+  | 'pve_win'
   | 'pve_loss'
-  | 'pvp_bet' 
-  | 'pvp_win' 
-  | 'pvp_loss' 
+  | 'pvp_bet'
+  | 'pvp_win'
+  | 'pvp_loss'
   | 'pvp_draw_refund'
   | 'daily_bonus'
   | 'streak_bonus'
@@ -44,6 +44,8 @@ export type TransactionType =
   | 'admin_adjustment'
   | 'burn'
   | 'puzzle_reward'
+  | 'ad_reward'
+  | 'signup_reward'
   | 'subscription';
 
 export interface Transaction {
@@ -139,9 +141,9 @@ export interface StreakData {
 }
 
 // ---- ANTI-CHEAT ----
-export type CheatFlag = 
-  | 'engine_pattern' 
-  | 'sudden_spike' 
+export type CheatFlag =
+  | 'engine_pattern'
+  | 'sudden_spike'
   | 'suspicious_accuracy'
   | 'move_timing'
   | 'collusion_suspected';

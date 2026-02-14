@@ -6,26 +6,25 @@ import {
   X, Check, Clock, TrendingUp, Send, ArrowLeft, Users, Sparkles
 } from 'lucide-react';
 import { MobileLayout } from '@/components/MobileLayout';
-import { useGameStore, Friend } from '@/store/gameStore';
+import { useGameStore, type Friend, type ChatMessage } from '@/store/gameStore';
 import { cn } from '@/utils/cn';
 import { RANKS } from '@/systems/progression';
 import { getDefaultCountry } from '@/systems/countries';
 
-interface Message {
-  id: string;
-  senderId: string;
-  text: string;
-  timestamp: Date;
-  isMe: boolean;
-}
-
-interface ChatRoom {
-  friendId: string;
-  messages: Message[];
-}
-
 export function FriendsScreen() {
-  const { friends, pendingInvites, sendInvite, removeFriend, addFriend, user } = useGameStore();
+  const {
+    friends,
+    pendingInvites,
+    removeFriend,
+    addFriend,
+    user,
+    chatRooms,
+    incomingChallenges,
+    sendMessageAction,
+    sendChallengeAction,
+    respondToChallenge
+  } = useGameStore();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFriend, setSelectedFriend] = useState<Friend | null>(null);
   const [showAddFriend, setShowAddFriend] = useState(false);
@@ -33,7 +32,6 @@ export function FriendsScreen() {
 
   // Chat state
   const [chatFriend, setChatFriend] = useState<Friend | null>(null);
-  const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
   const [messageInput, setMessageInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -63,7 +61,7 @@ export function FriendsScreen() {
   }, [chatRooms, chatFriend]);
 
   const handleInvite = (friendId: string) => {
-    sendInvite(friendId);
+    sendChallengeAction(friendId);
     setSelectedFriend(null);
   };
 
@@ -92,96 +90,25 @@ export function FriendsScreen() {
   const openChat = (friend: Friend) => {
     setChatFriend(friend);
     setSelectedFriend(null);
-
-    // Create chat room if doesn't exist
-    if (!chatRooms.find(room => room.friendId === friend.id)) {
-      const welcomeMessages: Message[] = [
-        {
-          id: '1',
-          senderId: friend.id,
-          text: `Hey ${user.name}! 👋`,
-          timestamp: new Date(Date.now() - 60000),
-          isMe: false,
-        },
-        {
-          id: '2',
-          senderId: friend.id,
-          text: "Ready for a challenge? ♟️",
-          timestamp: new Date(Date.now() - 30000),
-          isMe: false,
-        },
-      ];
-
-      setChatRooms(prev => [...prev, {
-        friendId: friend.id,
-        messages: welcomeMessages,
-      }]);
-    }
   };
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!messageInput.trim() || !chatFriend) return;
-
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      senderId: user.id,
-      text: messageInput.trim(),
-      timestamp: new Date(),
-      isMe: true,
-    };
-
-    setChatRooms(prev => prev.map(room => {
-      if (room.friendId === chatFriend.id) {
-        return {
-          ...room,
-          messages: [...room.messages, newMessage],
-        };
-      }
-      return room;
-    }));
-
-    setMessageInput('');
-
-    if (chatFriend.online) {
-      setTimeout(() => {
-        const responses = [
-          "Let's play! ♟️",
-          "One sec, just finishing a match.",
-          "Good to see you online!",
-          "Challenge accepted?",
-        ];
-
-        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-
-        const replyMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          senderId: chatFriend.id,
-          text: randomResponse,
-          timestamp: new Date(),
-          isMe: false,
-        };
-
-        setChatRooms(prev => prev.map(room => {
-          if (room.friendId === chatFriend.id) {
-            return {
-              ...room,
-              messages: [...room.messages, replyMessage],
-            };
-          }
-          return room;
-        }));
-      }, 1000 + Math.random() * 2000);
+    try {
+      await sendMessageAction(chatFriend.id, messageInput.trim());
+      setMessageInput('');
+    } catch (e) {
+      console.error('Failed to send message:', e);
     }
   };
 
   const getCurrentChatMessages = () => {
     if (!chatFriend) return [];
-    const room = chatRooms.find(r => r.friendId === chatFriend.id);
-    return room?.messages || [];
+    return chatRooms[chatFriend.id] || [];
   };
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const formatTime = (dateStr: string) => {
+    return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const FriendCard = ({ friend, isDiscovery = false }: { friend: Friend, isDiscovery?: boolean }) => {
@@ -317,28 +244,28 @@ export function FriendsScreen() {
                 <p className="text-white/20 text-xs">Messages are private and secure</p>
               </div>
             ) : (
-              messages.map((message) => (
+              messages.map((message: ChatMessage) => (
                 <motion.div
                   key={message.id}
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   className={cn(
                     "flex",
-                    message.isMe ? "justify-end" : "justify-start"
+                    message.sender_id === user.id ? "justify-end" : "justify-start"
                   )}
                 >
                   <div className={cn(
                     "max-w-[80%] px-4 py-3 rounded-2xl shadow-sm",
-                    message.isMe
+                    message.sender_id === user.id
                       ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-br-sm"
                       : "bg-white/10 text-white rounded-bl-sm border border-white/5"
                   )}>
-                    <p className="text-sm leading-relaxed">{message.text}</p>
+                    <p className="text-sm leading-relaxed">{message.content}</p>
                     <p className={cn(
                       "text-[8px] mt-1 font-medium uppercase tracking-widest",
-                      message.isMe ? "text-white/70" : "text-white/40"
+                      message.sender_id === user.id ? "text-white/70" : "text-white/40"
                     )}>
-                      {formatTime(message.timestamp)}
+                      {formatTime(message.created_at)}
                     </p>
                   </div>
                 </motion.div>
@@ -391,6 +318,42 @@ export function FriendsScreen() {
       }
     >
       <div className="p-4 space-y-6">
+        {/* Challenge received banner */}
+        <AnimatePresence>
+          {incomingChallenges.length > 0 && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-xl shrink-0">
+                  {incomingChallenges[0].sender_avatar}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-xs font-bold truncate">Challenge from {incomingChallenges[0].sender_name}</p>
+                  <p className="text-white/40 text-[10px]">Ready for a quick match?</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => respondToChallenge(incomingChallenges[0].id, 'rejected')}
+                    className="p-2 bg-white/5 rounded-lg text-white/40 hover:text-white/60"
+                  >
+                    <X size={16} />
+                  </button>
+                  <button
+                    onClick={() => respondToChallenge(incomingChallenges[0].id, 'accepted')}
+                    className="p-2 bg-green-500/20 rounded-lg text-green-400 hover:bg-green-500/30"
+                  >
+                    <Check size={16} />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Navigation Tabs */}
         <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5">
           <button
@@ -431,7 +394,7 @@ export function FriendsScreen() {
             {filteredOnline.length > 0 && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-white/40 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
+                  <h3 className="text-white/50 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
                     <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
                     Online • {filteredOnline.length}
                   </h3>
@@ -447,7 +410,7 @@ export function FriendsScreen() {
             {/* Offline Friends */}
             {filteredOffline.length > 0 && (
               <div className="space-y-3">
-                <h3 className="text-white/40 text-[10px] font-bold uppercase tracking-widest">
+                <h3 className="text-white/50 text-[10px] font-bold uppercase tracking-widest">
                   Offline • {filteredOffline.length}
                 </h3>
                 <div className="space-y-3">
@@ -558,67 +521,66 @@ export function FriendsScreen() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-end justify-center z-[9999]"
+              className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-[9999] p-6"
               onClick={() => setSelectedFriend(null)}
             >
               <motion.div
-                initial={{ y: 300 }}
-                animate={{ y: 0 }}
-                exit={{ y: 300 }}
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-indigo-950/95 border-t border-white/10 rounded-t-[2.5rem] p-8 w-full max-w-lg space-y-6 pb-[calc(env(safe-area-inset-bottom)+2rem)] shadow-2xl"
+                className="glass rounded-[2rem] p-8 w-full max-w-sm space-y-6 border border-white/10 shadow-2xl relative overflow-hidden"
               >
-                <div className="w-12 h-1.5 bg-white/10 rounded-full mx-auto mb-6" />
+                {/* Decorative background */}
+                <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl" />
 
-                <div className="flex items-center gap-5 mb-8">
-                  <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-4xl shadow-2xl shadow-indigo-500/20">
+                <div className="text-center relative z-10">
+                  <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-4xl shadow-xl mx-auto mb-4 border border-white/10">
                     {selectedFriend.avatar}
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl shadow-sm">{selectedFriend.country.flag}</span>
-                      <h3 className="text-2xl font-black text-white tracking-tight">{selectedFriend.name}</h3>
-                    </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-amber-400 font-bold uppercase tracking-widest text-[10px]">
-                        {selectedFriend.rank}
-                      </span>
-                      <span className="text-white/20">•</span>
-                      <span className="text-white/50 text-[10px] font-medium uppercase">
-                        Level {selectedFriend.level}
-                      </span>
-                    </div>
+
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <span className="text-xl">{selectedFriend.country.flag}</span>
+                    <h3 className="text-2xl font-black text-white tracking-tight">{selectedFriend.name}</h3>
+                  </div>
+
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-amber-400 font-bold uppercase tracking-widest text-[10px]">
+                      {selectedFriend.rank}
+                    </span>
+                    <span className="text-white/20">•</span>
+                    <span className="text-white/50 text-[10px] font-medium uppercase">
+                      Level {selectedFriend.level}
+                    </span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3">
+                <div className="space-y-3 relative z-10 pt-2">
                   <button
                     onClick={() => handleInvite(selectedFriend.id)}
-                    className="w-full py-4.5 bg-gradient-to-br from-green-400 to-emerald-600 rounded-2xl text-white font-black flex items-center justify-center gap-3 shadow-lg shadow-green-500/10 active:scale-[0.98] transition-all"
+                    className="w-full py-4 bg-gradient-to-br from-green-400 to-emerald-600 rounded-2xl text-white font-black flex items-center justify-center gap-3 shadow-lg shadow-green-500/20 active:scale-[0.98] transition-all"
                   >
                     <Swords size={20} />
-                    Challenge to Play
+                    Challenge Player
                   </button>
 
                   <button
                     onClick={() => openChat(selectedFriend)}
-                    className="w-full py-4.5 glass rounded-2xl text-white font-bold flex items-center justify-center gap-3 border border-white/10 hover:bg-white/10 active:scale-[0.98] transition-all"
+                    className="w-full py-4 glass rounded-2xl text-white font-bold flex items-center justify-center gap-3 border border-white/10 hover:bg-white/10 active:scale-[0.98] transition-all"
                   >
                     <MessageCircle size={20} />
                     Send Message
                   </button>
-
-                  <div className="h-px bg-white/5 my-2" />
 
                   <button
                     onClick={() => {
                       removeFriend(selectedFriend.id);
                       setSelectedFriend(null);
                     }}
-                    className="w-full py-4 text-rose-400 font-bold flex items-center justify-center gap-3 hover:bg-red-500/5 rounded-2xl transition-all"
+                    className="w-full py-3 text-rose-400/70 font-bold text-sm flex items-center justify-center gap-2 hover:text-rose-400 transition-all pt-2"
                   >
-                    <X size={18} />
+                    <X size={16} />
                     Remove Friend
                   </button>
                 </div>

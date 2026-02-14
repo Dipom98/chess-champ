@@ -2,20 +2,20 @@ import { Board, GameState, Move, Piece, PieceColor, PieceType, Position } from '
 
 export function createInitialBoard(): Board {
   const board: Board = Array(8).fill(null).map(() => Array(8).fill(null));
-  
+
   // Place pawns
   for (let col = 0; col < 8; col++) {
     board[1][col] = { type: 'pawn', color: 'black' };
     board[6][col] = { type: 'pawn', color: 'white' };
   }
-  
+
   // Place other pieces
   const backRow: PieceType[] = ['rook', 'knight', 'bishop', 'queen', 'king', 'bishop', 'knight', 'rook'];
   for (let col = 0; col < 8; col++) {
     board[0][col] = { type: backRow[col], color: 'black' };
     board[7][col] = { type: backRow[col], color: 'white' };
   }
-  
+
   return board;
 }
 
@@ -100,7 +100,7 @@ function getRawMoves(
     if (!isValidPosition(to)) return false;
     const targetPiece = getPieceAt(board, to);
     if (targetPiece && targetPiece.color === color) return false;
-    
+
     moves.push({
       from,
       to,
@@ -220,7 +220,7 @@ function getRawMoves(
 export function getLegalMoves(gameState: GameState, from: Position): Move[] {
   const { board, currentPlayer, enPassantTarget } = gameState;
   const piece = getPieceAt(board, from);
-  
+
   if (!piece || piece.color !== currentPlayer) return [];
 
   const rawMoves = getRawMoves(board, from, piece, enPassantTarget, false);
@@ -231,7 +231,7 @@ export function getLegalMoves(gameState: GameState, from: Position): Move[] {
     const newBoard = copyBoard(board);
     newBoard[move.to.row][move.to.col] = piece;
     newBoard[from.row][from.col] = null;
-    
+
     // Handle en passant capture
     if (move.isEnPassant) {
       const capturedPawnRow = from.row;
@@ -246,14 +246,14 @@ export function getLegalMoves(gameState: GameState, from: Position): Move[] {
   // Add castling moves
   if (piece.type === 'king' && !piece.hasMoved && !isInCheck(board, currentPlayer)) {
     const row = currentPlayer === 'white' ? 7 : 0;
-    
+
     // Kingside castling
     const kingsideRook = getPieceAt(board, { row, col: 7 });
     if (kingsideRook && kingsideRook.type === 'rook' && !kingsideRook.hasMoved) {
       if (!getPieceAt(board, { row, col: 5 }) && !getPieceAt(board, { row, col: 6 })) {
         const opponent = currentPlayer === 'white' ? 'black' : 'white';
         if (!isSquareAttacked(board, { row, col: 5 }, opponent) &&
-            !isSquareAttacked(board, { row, col: 6 }, opponent)) {
+          !isSquareAttacked(board, { row, col: 6 }, opponent)) {
           legalMoves.push({
             from,
             to: { row, col: 6 },
@@ -267,12 +267,12 @@ export function getLegalMoves(gameState: GameState, from: Position): Move[] {
     // Queenside castling
     const queensideRook = getPieceAt(board, { row, col: 0 });
     if (queensideRook && queensideRook.type === 'rook' && !queensideRook.hasMoved) {
-      if (!getPieceAt(board, { row, col: 1 }) && 
-          !getPieceAt(board, { row, col: 2 }) && 
-          !getPieceAt(board, { row, col: 3 })) {
+      if (!getPieceAt(board, { row, col: 1 }) &&
+        !getPieceAt(board, { row, col: 2 }) &&
+        !getPieceAt(board, { row, col: 3 })) {
         const opponent = currentPlayer === 'white' ? 'black' : 'white';
         if (!isSquareAttacked(board, { row, col: 2 }, opponent) &&
-            !isSquareAttacked(board, { row, col: 3 }, opponent)) {
+          !isSquareAttacked(board, { row, col: 3 }, opponent)) {
           legalMoves.push({
             from,
             to: { row, col: 2 },
@@ -306,7 +306,7 @@ export function makeMove(gameState: GameState, move: Move): GameState {
 
   // Move piece
   const movedPiece = { ...piece, hasMoved: true };
-  
+
   if (isPromotion && promotedTo) {
     newBoard[to.row][to.col] = { type: promotedTo, color: piece.color, hasMoved: true };
   } else {
@@ -369,7 +369,7 @@ export function makeMove(gameState: GameState, move: Move): GameState {
   // Check for check/checkmate/stalemate
   newGameState.isCheck = isInCheck(newBoard, nextPlayer);
   const legalMoves = getAllLegalMoves(newGameState);
-  
+
   if (legalMoves.length === 0) {
     if (newGameState.isCheck) {
       newGameState.isCheckmate = true;
@@ -383,7 +383,7 @@ export function makeMove(gameState: GameState, move: Move): GameState {
 
 function generateMoveNotation(_board: Board, move: Move): string {
   const { from, to, piece, captured, isCastling, isPromotion, promotedTo } = move;
-  
+
   if (isCastling) {
     return to.col === 6 ? 'O-O' : 'O-O-O';
   }
@@ -391,9 +391,9 @@ function generateMoveNotation(_board: Board, move: Move): string {
   const files = 'abcdefgh';
   const ranks = '87654321';
   const toSquare = files[to.col] + ranks[to.row];
-  
+
   let notation = '';
-  
+
   if (piece.type === 'pawn') {
     if (captured) {
       notation = files[from.col] + 'x' + toSquare;
@@ -408,7 +408,7 @@ function generateMoveNotation(_board: Board, move: Move): string {
     if (captured) notation += 'x';
     notation += toSquare;
   }
-  
+
   return notation;
 }
 
@@ -423,6 +423,70 @@ function getPieceSymbol(type: PieceType): string {
   };
   return symbols[type];
 }
+
+// Piece-Square Tables for better positional evaluation
+const PIECE_SQUARE_TABLES: Record<PieceType, number[][]> = {
+  pawn: [
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [50, 50, 50, 50, 50, 50, 50, 50],
+    [10, 10, 20, 30, 30, 20, 10, 10],
+    [5, 5, 10, 25, 25, 10, 5, 5],
+    [0, 0, 0, 20, 20, 0, 0, 0],
+    [5, -5, -10, 0, 0, -10, -5, 5],
+    [5, 10, 10, -20, -20, 10, 10, 5],
+    [0, 0, 0, 0, 0, 0, 0, 0]
+  ],
+  knight: [
+    [-50, -40, -30, -30, -30, -30, -40, -50],
+    [-40, -20, 0, 0, 0, 0, -20, -40],
+    [-30, 0, 10, 15, 15, 10, 0, -30],
+    [-30, 5, 15, 20, 20, 15, 5, -30],
+    [-30, 0, 15, 20, 20, 15, 0, -30],
+    [-30, 5, 10, 15, 15, 10, 5, -30],
+    [-40, -20, 0, 5, 5, 0, -20, -40],
+    [-50, -40, -30, -30, -30, -30, -40, -50]
+  ],
+  bishop: [
+    [-20, -10, -10, -10, -10, -10, -10, -20],
+    [-10, 0, 0, 0, 0, 0, 0, -10],
+    [-10, 0, 5, 10, 10, 5, 0, -10],
+    [-10, 5, 5, 10, 10, 5, 5, -10],
+    [-10, 0, 10, 10, 10, 10, 0, -10],
+    [-10, 10, 10, 10, 10, 10, 10, -10],
+    [-10, 5, 0, 0, 0, 0, 5, -10],
+    [-20, -10, -10, -10, -10, -10, -10, -20]
+  ],
+  rook: [
+    [0, 0, 0, 0, 0, 0, 0, 0],
+    [5, 10, 10, 10, 10, 10, 10, 5],
+    [-5, 0, 0, 0, 0, 0, 0, -5],
+    [-5, 0, 0, 0, 0, 0, 0, -5],
+    [-5, 0, 0, 0, 0, 0, 0, -5],
+    [-5, 0, 0, 0, 0, 0, 0, -5],
+    [-5, 0, 0, 0, 0, 0, 0, -5],
+    [0, 0, 0, 5, 5, 0, 0, 0]
+  ],
+  queen: [
+    [-20, -10, -10, -5, -5, -10, -10, -20],
+    [-10, 0, 0, 0, 0, 0, 0, -10],
+    [-10, 0, 5, 5, 5, 5, 0, -10],
+    [-5, 0, 5, 5, 5, 5, 0, -5],
+    [0, 0, 5, 5, 5, 5, 0, -5],
+    [-10, 5, 5, 5, 5, 5, 0, -10],
+    [-10, 0, 5, 0, 0, 0, 0, -10],
+    [-20, -10, -10, -5, -5, -10, -10, -20]
+  ],
+  king: [
+    [-30, -40, -40, -50, -50, -40, -40, -30],
+    [-30, -40, -40, -50, -50, -40, -40, -30],
+    [-30, -40, -40, -50, -50, -40, -40, -30],
+    [-30, -40, -40, -50, -50, -40, -40, -30],
+    [-20, -30, -30, -40, -40, -30, -30, -20],
+    [-10, -20, -20, -20, -20, -20, -20, -10],
+    [20, 20, 0, 0, 0, 0, 20, 20],
+    [20, 30, 10, 0, 0, 10, 30, 20]
+  ]
+};
 
 // Simple AI evaluation
 export function evaluateBoard(board: Board): number {
@@ -440,36 +504,74 @@ export function evaluateBoard(board: Board): number {
     for (let col = 0; col < 8; col++) {
       const piece = board[row][col];
       if (piece) {
-        const value = pieceValues[piece.type];
-        score += piece.color === 'white' ? value : -value;
+        const materialValue = pieceValues[piece.type];
+
+        // Material score
+        let pieceScore = materialValue;
+
+        // Positional score (Piece-Square Tables)
+        const table = PIECE_SQUARE_TABLES[piece.type];
+        // Flip table for black
+        const tableRow = piece.color === 'white' ? row : 7 - row;
+        pieceScore += table[tableRow][col];
+
+        score += piece.color === 'white' ? pieceScore : -pieceScore;
       }
     }
   }
   return score;
 }
 
-export function getBestMove(gameState: GameState, depth: number = 3): Move | null {
+export function getBestMove(gameState: GameState, depth: number = 3, difficulty: string = 'intermediate'): Move | null {
   const moves = getAllLegalMoves(gameState);
   if (moves.length === 0) return null;
 
   const isMaximizing = gameState.currentPlayer === 'white';
-  let bestMove = moves[0];
-  let bestScore = isMaximizing ? -Infinity : Infinity;
 
-  for (const move of moves) {
+  // Scoring all potential moves
+  const evaluatedMoves = moves.map(move => {
     const newState = makeMove(gameState, move);
     const score = minimax(newState, depth - 1, -Infinity, Infinity, !isMaximizing);
-    
-    if (isMaximizing && score > bestScore) {
-      bestScore = score;
-      bestMove = move;
-    } else if (!isMaximizing && score < bestScore) {
-      bestScore = score;
-      bestMove = move;
-    }
+    return { move, score };
+  });
+
+  // Sort moves by score
+  if (isMaximizing) {
+    evaluatedMoves.sort((a, b) => b.score - a.score);
+  } else {
+    evaluatedMoves.sort((a, b) => a.score - b.score);
   }
 
-  return bestMove;
+  // Difficulty-based move selection (to avoid robotic/same-level play)
+  if (difficulty === 'beginner') {
+    // Beginner: 25% chance of picking a random legal move
+    // Otherwise, pick from top 5 moves randomly
+    if (Math.random() < 0.25) {
+      return moves[Math.floor(Math.random() * moves.length)];
+    }
+    const topCount = Math.min(evaluatedMoves.length, 5);
+    return evaluatedMoves[Math.floor(Math.random() * topCount)].move;
+
+  } else if (difficulty === 'intermediate') {
+    // Intermediate: 10% chance of random move
+    // Otherwise, pick from top 3 moves
+    if (Math.random() < 0.10) {
+      return moves[Math.floor(Math.random() * moves.length)];
+    }
+    const topCount = Math.min(evaluatedMoves.length, 3);
+    return evaluatedMoves[Math.floor(Math.random() * topCount)].move;
+
+  } else if (difficulty === 'advanced') {
+    // Advanced: Always pick from top 2 moves, weighted towards the best
+    const topCount = Math.min(evaluatedMoves.length, 2);
+    if (Math.random() < 0.8) {
+      return evaluatedMoves[0].move;
+    }
+    return evaluatedMoves[topCount - 1].move;
+  }
+
+  // Expert and Engine: Always pick the absolute best move
+  return evaluatedMoves[0].move;
 }
 
 function minimax(
@@ -481,7 +583,8 @@ function minimax(
 ): number {
   if (depth === 0 || gameState.isCheckmate || gameState.isStalemate) {
     if (gameState.isCheckmate) {
-      return isMaximizing ? -100000 : 100000;
+      // Prioritize quicker checkmates
+      return isMaximizing ? -100000 - depth : 100000 + depth;
     }
     if (gameState.isStalemate) {
       return 0;
@@ -490,6 +593,13 @@ function minimax(
   }
 
   const moves = getAllLegalMoves(gameState);
+
+  // Basic Move Ordering (captures first) to improve Alpha-Beta efficiency
+  moves.sort((a, b) => {
+    const aCap = a.captured ? 1 : 0;
+    const bCap = b.captured ? 1 : 0;
+    return bCap - aCap;
+  });
 
   if (isMaximizing) {
     let maxScore = -Infinity;

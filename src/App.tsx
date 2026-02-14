@@ -1,6 +1,8 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { App as CapacitorApp } from '@capacitor/app';
+import { motion, AnimatePresence } from 'framer-motion';
+import { LogOut } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
 import { WelcomeScreen } from '@/pages/WelcomeScreen';
 import { HomeScreen } from '@/pages/HomeScreen';
@@ -46,50 +48,100 @@ function AppRoutes() {
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
+  const [showExitModal, setShowExitModal] = useState(false);
 
   useEffect(() => {
-    CapacitorApp.addListener('backButton', ({ canGoBack }) => {
-      // If we're on the home screen or welcome screen, minimize/exit
-      if (location.pathname === '/home' || location.pathname === '/' || location.pathname === '/welcome') {
-        CapacitorApp.exitApp();
+    CapacitorApp.addListener('backButton', ({ canGoBack }: { canGoBack: boolean }) => {
+      // If modal is open, close it
+      if (showExitModal) {
+        setShowExitModal(false);
+        return;
+      }
+
+      const path = location.pathname;
+      const isExitRoot = path === '/home' || path === '/' || path === '/welcome';
+
+      if (isExitRoot) {
+        setShowExitModal(true);
       } else {
-        // Otherwise go back if possible
         if (canGoBack) {
           navigate(-1);
         } else {
-          // If can't go back in history, maybe just navigate home
           navigate('/home');
         }
       }
     });
 
-    return () => {
-      CapacitorApp.removeAllListeners();
-    };
-  }, [navigate, location]);
+    const initNotifications = async () => {
+      const { supabase } = await import('@/systems/supabase');
+      const { data: { user } } = await supabase.auth.getUser();
+      const { initializeNotifications } = await import('@/systems/notifications');
 
-  useEffect(() => {
-    const checkPermissions = async () => {
-      try {
-        // Request notification permissions
-        if (CapacitorApp) {
-          const { PushNotifications } = await import('@capacitor/push-notifications');
-          const status = await PushNotifications.checkPermissions();
-          if (status.receive === 'prompt') {
-            await PushNotifications.requestPermissions();
-          }
-        }
-      } catch (e) {
-        console.log('Push notifications not available or failed', e);
+      // Initialize even for local users so they see the permission popup
+      await initializeNotifications(user?.id || 'local-user');
+
+      if (user) {
+        const { initializeRealtime } = await import('@/systems/realtime');
+        initializeRealtime(user.id);
       }
     };
 
-    checkPermissions();
-  }, []);
+    initNotifications();
+
+    return () => {
+      CapacitorApp.removeAllListeners();
+      import('@/systems/realtime').then(m => m.stopRealtime());
+    };
+  }, [navigate, location]);
 
   return (
     <div className="max-w-md mx-auto min-h-screen bg-indigo-950 relative overflow-hidden">
       <AppRoutes />
+
+      {/* Exit Confirmation Modal */}
+      <AnimatePresence>
+        {showExitModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/80 backdrop-blur-md z-[9999] flex items-center justify-center p-6"
+            onClick={() => setShowExitModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-indigo-900 border border-white/10 rounded-3xl p-6 w-full max-w-sm shadow-2xl space-y-6 text-center"
+            >
+              <div className="w-20 h-20 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto">
+                <LogOut size={40} className="text-amber-400" />
+              </div>
+
+              <div>
+                <h2 className="text-2xl font-bold text-white mb-2">Exit Game?</h2>
+                <p className="text-white/60">Are you sure you want to exit Chess Champ?</p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowExitModal(false)}
+                  className="flex-1 py-4 glass rounded-2xl text-white font-bold hover:bg-white/10 transition-all"
+                >
+                  Stay
+                </button>
+                <button
+                  onClick={() => CapacitorApp.exitApp()}
+                  className="flex-1 py-4 bg-gradient-to-r from-red-500 to-rose-600 rounded-2xl text-white font-bold shadow-lg shadow-red-500/20"
+                >
+                  Exit
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

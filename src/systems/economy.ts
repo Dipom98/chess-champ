@@ -2,7 +2,7 @@
 // COIN ECONOMY SYSTEM
 // ============================================
 
-import { 
+import {
   Wallet, Transaction, TransactionType,
   AIDifficulty, TimeControl, StreakData,
   PveMatchResult, PvpMatchResult
@@ -53,12 +53,12 @@ export function getPveEntryCost(difficulty: AIDifficulty, playerLevel: number): 
     'expert': 100,
     'engine': 200,
   };
-  
+
   const baseCost = baseCosts[difficulty];
   const minLevel = getMinLevelForDifficulty(difficulty);
   const levelDiff = Math.max(0, playerLevel - minLevel);
   const scalingFactor = 1 + (levelDiff * 0.02);
-  
+
   return Math.floor(baseCost * scalingFactor);
 }
 
@@ -109,7 +109,7 @@ export function getLevelUpReward(level: number): number {
   const scalingReward = Math.pow(level, 1.5) * 10;
   const rankInfo = getRankInfo(level);
   const rankBonus = (rankInfo.coinMultiplier - 1) * 100;
-  
+
   return Math.floor(baseReward + scalingReward + rankBonus);
 }
 
@@ -122,34 +122,34 @@ export function generateGiftReward(
   lastGiftTime: number
 ): { amount: number; canClaim: boolean; reason?: string } {
   const now = Date.now();
-  
+
   // Cooldown check
   if (now - lastGiftTime < GIFT_COOLDOWN_MS) {
     const remainingMs = GIFT_COOLDOWN_MS - (now - lastGiftTime);
     const remainingMins = Math.ceil(remainingMs / 60000);
-    return { 
-      amount: 0, 
-      canClaim: false, 
-      reason: `Cooldown: ${remainingMins} minutes remaining` 
+    return {
+      amount: 0,
+      canClaim: false,
+      reason: `Cooldown: ${remainingMins} minutes remaining`
     };
   }
-  
+
   // Daily limit check
   if (giftClaimsToday >= MAX_GIFTS_PER_DAY) {
-    return { 
-      amount: 0, 
-      canClaim: false, 
-      reason: 'Daily gift limit reached' 
+    return {
+      amount: 0,
+      canClaim: false,
+      reason: 'Daily gift limit reached'
     };
   }
-  
+
   // Diminishing returns based on claims today
   const diminishingFactor = Math.pow(0.8, giftClaimsToday);
-  
+
   // Weighted random (favor lower values)
   const random = Math.random();
   let baseAmount: number;
-  
+
   if (random < 0.5) {
     // 50% chance: 10-100 coins
     baseAmount = GIFT_MIN_COINS + Math.floor(Math.random() * 90);
@@ -163,9 +163,9 @@ export function generateGiftReward(
     // 5% chance: 600-1000 coins
     baseAmount = 600 + Math.floor(Math.random() * 400);
   }
-  
+
   const finalAmount = Math.floor(baseAmount * diminishingFactor);
-  
+
   return {
     amount: Math.max(GIFT_MIN_COINS, finalAmount),
     canClaim: true,
@@ -193,7 +193,7 @@ export function updateStreakData(
   result: 'win' | 'loss' | 'draw'
 ): StreakData {
   const updated = { ...current };
-  
+
   if (result === 'win') {
     updated.currentWinStreak += 1;
     updated.currentLossStreak = 0;
@@ -210,7 +210,7 @@ export function updateStreakData(
     // Draw doesn't break win streak but doesn't add to it
     updated.currentLossStreak = 0;
   }
-  
+
   updated.lastMatchResult = result;
   return updated;
 }
@@ -234,8 +234,8 @@ export function getProtectedLoss(originalLoss: number, streakData: StreakData): 
 
 // ---- TIME CONTROL MULTIPLIERS ----
 
-export function getTimeControlMultipliers(timeControl: TimeControl): { 
-  xpMultiplier: number; 
+export function getTimeControlMultipliers(timeControl: TimeControl): {
+  xpMultiplier: number;
   coinMultiplier: number;
 } {
   const multipliers: Record<TimeControl, { xpMultiplier: number; coinMultiplier: number }> = {
@@ -300,12 +300,12 @@ export function calculatePveMatchResult(
   const isFarming = isFarmingLowDifficulty(difficulty, playerLevel, winsOnDifficulty);
   const timeMultipliers = getTimeControlMultipliers(timeControl);
   const rankInfo = getRankInfo(playerLevel);
-  
+
   let payout = 0;
   let xpEarned = 0;
   let winsEarned = 0;
   let farmingPenalty = 0;
-  
+
   const baseXp: Record<AIDifficulty, number> = {
     'beginner': 25,
     'intermediate': 50,
@@ -313,23 +313,23 @@ export function calculatePveMatchResult(
     'expert': 200,
     'engine': 400,
   };
-  
+
   if (result === 'win') {
     payout = getPveWinReward(betAmount);
     xpEarned = baseXp[difficulty];
     winsEarned = 1;
-    
+
     // Apply streak bonus
     const streakBonus = calculateStreakBonus(streakData);
     payout = Math.floor(payout * (1 + streakBonus));
-    
+
     // Apply rank multiplier
     payout = Math.floor(payout * rankInfo.coinMultiplier);
-    
+
     // Apply time control multipliers
     payout = Math.floor(payout * timeMultipliers.coinMultiplier);
     xpEarned = Math.floor(xpEarned * timeMultipliers.xpMultiplier);
-    
+
     // Apply farming penalty
     if (isFarming) {
       const penalized = applyFarmingPenalty(payout - betAmount, xpEarned, true);
@@ -345,7 +345,7 @@ export function calculatePveMatchResult(
     payout = betAmount;
     xpEarned = Math.floor(baseXp[difficulty] * 0.3);
   }
-  
+
   return {
     matchId,
     result,
@@ -373,18 +373,18 @@ export function calculatePvpMatchResult(
 ): PvpMatchResult {
   const totalPot = stakeAmount * 2; // Both players stake
   const timeMultipliers = getTimeControlMultipliers(timeControl);
-  
+
   let payout = 0;
   let burnAmount = 0;
   let xpEarned = 0;
-  
+
   const baseXp = 100;
-  
+
   if (result === 'win') {
     payout = getPvpWinPayout(totalPot);
     burnAmount = getPvpBurnAmount(totalPot);
     xpEarned = baseXp;
-    
+
     // Apply streak bonus to XP only (not coins for PvP)
     const streakBonus = calculateStreakBonus(streakData);
     xpEarned = Math.floor(xpEarned * (1 + streakBonus));
@@ -392,7 +392,7 @@ export function calculatePvpMatchResult(
     payout = 0;
     burnAmount = 0;
     xpEarned = Math.floor(baseXp * 0.2);
-    
+
     // Apply loss protection
     if (hasLossProtection(streakData)) {
       payout = Math.floor(stakeAmount * 0.25); // Get 25% back
@@ -403,10 +403,10 @@ export function calculatePvpMatchResult(
     burnAmount = Math.floor(stakeAmount * PVP_DRAW_BURN_RATE);
     xpEarned = Math.floor(baseXp * 0.5);
   }
-  
+
   // Apply time control multipliers
   xpEarned = Math.floor(xpEarned * timeMultipliers.xpMultiplier);
-  
+
   return {
     matchId,
     result,
@@ -424,21 +424,27 @@ export function calculatePvpMatchResult(
 /**
  * Create new wallet
  */
-export function createWallet(initialBalance: number = 500): Wallet {
-  return {
-    balance: initialBalance,
-    lockedBalance: 0,
-    totalEarned: initialBalance,
-    totalSpent: 0,
-    totalBurned: 0,
-    transactions: [{
+export function createWallet(initialBalance: number = 0): Wallet {
+  const transactions: Transaction[] = [];
+
+  if (initialBalance > 0) {
+    transactions.push({
       id: crypto.randomUUID(),
       type: 'admin_adjustment',
       amount: initialBalance,
       balance: initialBalance,
       timestamp: Date.now(),
       description: 'Welcome bonus',
-    }],
+    });
+  }
+
+  return {
+    balance: initialBalance,
+    lockedBalance: 0,
+    totalEarned: initialBalance,
+    totalSpent: 0,
+    totalBurned: 0,
+    transactions,
   };
 }
 
@@ -449,7 +455,7 @@ export function lockFunds(wallet: Wallet, amount: number): Wallet | null {
   if (wallet.balance < amount) {
     return null; // Insufficient funds
   }
-  
+
   return {
     ...wallet,
     balance: wallet.balance - amount,
@@ -479,7 +485,7 @@ export function processTransaction(
   description?: string
 ): Wallet {
   const newBalance = wallet.balance + amount;
-  
+
   const transaction: Transaction = {
     id: crypto.randomUUID(),
     type,
@@ -489,12 +495,12 @@ export function processTransaction(
     matchId,
     description: description || getDefaultDescription(type, amount),
   };
-  
+
   return {
     ...wallet,
     balance: newBalance,
-    lockedBalance: type.includes('bet') ? wallet.lockedBalance : 
-                   Math.max(0, wallet.lockedBalance - Math.abs(amount)),
+    lockedBalance: type.includes('bet') ? wallet.lockedBalance :
+      Math.max(0, wallet.lockedBalance - Math.abs(amount)),
     totalEarned: amount > 0 ? wallet.totalEarned + amount : wallet.totalEarned,
     totalSpent: amount < 0 ? wallet.totalSpent + Math.abs(amount) : wallet.totalSpent,
     totalBurned: type === 'burn' ? wallet.totalBurned + Math.abs(amount) : wallet.totalBurned,
@@ -519,6 +525,8 @@ function getDefaultDescription(type: TransactionType, amount: number): string {
     'admin_adjustment': `Balance adjustment: ${amount > 0 ? '+' : ''}${amount} coins`,
     'burn': `Coins burned: ${Math.abs(amount)} coins`,
     'puzzle_reward': `Puzzle reward: +${amount} coins`,
+    'ad_reward': `Ad reward: +${amount} coins`,
+    'signup_reward': `Signup reward: +${amount} coins`,
     'subscription': `Premium subscription: ${amount} coins`,
   };
   return descriptions[type];
